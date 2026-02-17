@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: stock-saas-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: stock_saas
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data_v2:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d stock_saas']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-saas-api
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      LOG_LEVEL: info
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/stock_saas?schema=public
+      # Dev-only default secret for local Docker runs. Replace in production.
+      JWT_ACCESS_SECRET: dev_only_change_me__min_32_chars__0123456789abcdef
+      JWT_ACCESS_TTL: 15m
+    ports:
+      - '3001:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npm run prisma:migrate:deploy && npm run start:prod"
+
+volumes:
+  postgres_data_v2:
