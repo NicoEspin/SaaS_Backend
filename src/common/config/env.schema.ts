@@ -17,6 +17,10 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   LOG_LEVEL: logLevelSchema.default('info'),
 
+  // Comma-separated list of allowed origins for CORS.
+  // Example: "http://localhost:3000,https://app.example.com"
+  CORS_ORIGINS: z.string().default('http://localhost:3000'),
+
   DATABASE_URL: z.string().min(1).optional(),
 
   JWT_ACCESS_SECRET: z.string().min(32).optional(),
