@@ -47,6 +47,14 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum ProductAttributeType {
+  TEXT
+  NUMBER
+  BOOLEAN
+  DATE
+  ENUM
+}
+
 model Tenant {
   id        String   @id @db.VarChar(26)
   slug      String   @unique @db.VarChar(64)
@@ -58,6 +66,7 @@ model Tenant {
   branches    Branch[]
 
   products          Product[]
+  productAttributeDefinitions ProductAttributeDefinition[]
   categories        Category[]
   customers         Customer[]
   orders            Order[]
@@ -92,10 +101,28 @@ model Membership {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  refreshTokens RefreshToken[]
+
   @@unique([tenantId, userId])
   @@index([userId])
   @@index([tenantId])
   @@map("memberships")
+}
+
+model RefreshToken {
+  id           String   @id @db.VarChar(26)
+  membershipId String   @map("membership_id") @db.VarChar(26)
+  tokenHash    String   @unique @map("token_hash") @db.Char(64)
+  expiresAt    DateTime @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  lastUsedAt   DateTime? @map("last_used_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([membershipId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 model Branch {
@@ -125,6 +152,7 @@ model Product {
   code        String   @db.VarChar(64)
   name        String   @db.VarChar(200)
   description String?  @db.Text
+  attributes  Json?    @db.JsonB
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -150,12 +178,36 @@ model Category {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  products Product[]
+  tenant                      Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products                    Product[]
+  productAttributeDefinitions ProductAttributeDefinition[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
   @@map("categories")
+}
+
+model ProductAttributeDefinition {
+  id               String               @id @db.VarChar(26)
+  tenantId         String               @map("tenant_id") @db.VarChar(26)
+  categoryId       String               @map("category_id") @db.VarChar(26)
+  key              String               @db.VarChar(64)
+  label            String               @db.VarChar(120)
+  type             ProductAttributeType
+  options          Json?                @db.JsonB
+  unit             String?              @db.VarChar(24)
+  isRequired       Boolean              @default(false) @map("is_required")
+  isVisibleInTable Boolean              @default(false) @map("is_visible_in_table")
+  sortOrder        Int                  @default(0) @map("sort_order")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, categoryId, key])
+  @@index([tenantId, categoryId])
+  @@map("product_attribute_definitions")
 }
 
 model BranchInventory {

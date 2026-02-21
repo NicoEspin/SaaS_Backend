@@ -49,7 +49,8 @@ Validation rules:
     "id": "01J...",
     "role": "OWNER"
   },
-  "accessToken": "<jwt>"
+  "accessToken": "<jwt>",
+  "refreshToken": "<refresh>"
 }
 ```
 

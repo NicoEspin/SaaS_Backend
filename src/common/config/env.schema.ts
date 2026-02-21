@@ -27,6 +27,14 @@ export const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32).optional(),
   JWT_ACCESS_TTL: z.string().min(1).default('15m'),
   JWT_REFRESH_TTL: z.string().min(1).default('30d'),
+
+  // Auth cookies (for app.<domain> -> api.<domain> requests).
+  // In production for subdomains, set COOKIE_DOMAIN to ".miempresa.com".
+  COOKIE_DOMAIN: z.string().min(1).optional(),
+  COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+  COOKIE_SECURE: z.coerce.boolean().optional(),
+  COOKIE_ACCESS_NAME: z.string().min(1).default('accessToken'),
+  COOKIE_REFRESH_NAME: z.string().min(1).default('refreshToken'),
 });
 
 export type Env = z.infer<typeof envSchema>;

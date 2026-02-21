@@ -7,6 +7,7 @@ import { TenancyModule } from './common/tenancy/tenancy.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { ProductsModule } from './products/products.module';
 import { SalesModule } from './modules/sales/sales.module';
+import { ImportsExportsModule } from './imports-exports/imports-exports.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -20,6 +21,7 @@ import { AppService } from './app.service';
     OnboardingModule,
     ProductsModule,
     SalesModule,
+    ImportsExportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

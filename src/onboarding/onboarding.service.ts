@@ -23,6 +23,7 @@ export type InitialOnboardingResult = {
     role: MembershipRole;
   };
   accessToken: string;
+  refreshToken: string;
 };
 
 function normalizeSlug(input: string): string {
@@ -103,8 +104,11 @@ export class OnboardingService {
         role: created.membership.role,
       };
       const accessToken = await this.auth.issueAccessToken(payload);
+      const refreshToken = await this.auth.issueRefreshToken(
+        created.membership.id,
+      );
 
-      return { ...created, accessToken };
+      return { ...created, accessToken, refreshToken };
     } catch (err: unknown) {
       if (isP2002UniqueConstraintError(err)) {
         const targets = errorTargets(err);

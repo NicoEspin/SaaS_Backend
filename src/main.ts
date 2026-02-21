@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import type { Env } from './common/config/env.schema';
 
@@ -15,6 +16,7 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   app.setGlobalPrefix('api/v1');
+  app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -31,6 +33,7 @@ async function bootstrap() {
     .map((o) => o.replace(/\/+$/, ''));
 
   app.enableCors({
+    credentials: true,
     origin: (
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
@@ -40,6 +43,7 @@ async function bootstrap() {
       if (allowedOrigins.includes(normalized)) return callback(null, true);
       return callback(new Error('Not allowed by CORS'));
     },
+    exposedHeaders: ['content-disposition'],
   });
 
   const swaggerConfig = new DocumentBuilder()

@@ -52,6 +52,7 @@ describe('OnboardingService', () => {
 
   const auth = {
     issueAccessToken: jest.fn(),
+    issueRefreshToken: jest.fn(),
   };
 
   let service: OnboardingService;
@@ -74,6 +75,7 @@ describe('OnboardingService', () => {
       role: MembershipRole.OWNER,
     });
     auth.issueAccessToken.mockResolvedValue('token');
+    auth.issueRefreshToken.mockResolvedValue('refresh');
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -97,6 +99,7 @@ describe('OnboardingService', () => {
       user: { id: 'u1', email: 'admin@acme.com' },
       membership: { id: 'm1', role: MembershipRole.OWNER },
       accessToken: 'token',
+      refreshToken: 'refresh',
     });
 
     expect(tx.tenant.create).toHaveBeenCalledTimes(1);

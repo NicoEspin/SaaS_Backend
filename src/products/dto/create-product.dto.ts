@@ -1,4 +1,5 @@
 import {
+  IsObject,
   IsBoolean,
   IsOptional,
   IsString,
@@ -31,4 +32,8 @@ export class CreateProductDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  attributes?: Record<string, unknown>;
 }
