@@ -2,6 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import type { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 
@@ -15,6 +16,8 @@ import { durationToSeconds } from './jwt.util';
 function hashRefreshToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
+
+type DbClient = Prisma.TransactionClient | PrismaService;
 
 @Injectable()
 export class AuthService {
@@ -82,16 +85,36 @@ export class AuthService {
   }
 
   async issueRefreshToken(membershipId: string): Promise<string> {
+    return this.issueRefreshTokenWithClient(
+      this.prisma,
+      membershipId,
+      new Date(),
+    );
+  }
+
+  private async issueRefreshTokenWithClient(
+    client: DbClient,
+    membershipId: string,
+    now: Date,
+  ): Promise<string> {
     const expiresInSeconds = durationToSeconds(
       this.config.get<string>('JWT_REFRESH_TTL') ?? '30d',
       'JWT_REFRESH_TTL',
     );
 
+    // Keep the table bounded over time.
+    await client.refreshToken.deleteMany({
+      where: {
+        membershipId,
+        expiresAt: { lt: now },
+      },
+    });
+
     const token = crypto.randomBytes(32).toString('base64url');
     const tokenHash = hashRefreshToken(token);
-    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+    const expiresAt = new Date(now.getTime() + expiresInSeconds * 1000);
 
-    await this.prisma.refreshToken.create({
+    await client.refreshToken.create({
       data: {
         id: newId(),
         membershipId,
@@ -106,7 +129,7 @@ export class AuthService {
 
   async refresh(dto: {
     refreshToken: string;
-  }): Promise<{ accessToken: string }> {
+  }): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenHash = hashRefreshToken(dto.refreshToken);
     const now = new Date();
 
@@ -147,13 +170,28 @@ export class AuthService {
 
     const accessToken = await this.issueAccessToken(payload);
 
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { lastUsedAt: now },
-      select: { id: true },
+    // Rotate refresh tokens: revoke the old one and issue a new one atomically.
+    const newRefreshToken = await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.refreshToken.updateMany({
+        where: {
+          id: stored.id,
+          revokedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: {
+          revokedAt: now,
+          lastUsedAt: now,
+        },
+      });
+
+      if (count !== 1) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      return this.issueRefreshTokenWithClient(tx, membership.id, now);
     });
 
-    return { accessToken };
+    return { accessToken, refreshToken: newRefreshToken };
   }
 
   async logout(dto: { refreshToken: string }): Promise<{ revoked: true }> {

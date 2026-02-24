@@ -31,6 +31,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload): AuthUser {
+    // Intentionally stateless: we don't hit the DB here.
+    // If a membership is removed/disabled, access tokens remain valid until they expire.
     return {
       userId: payload.sub,
       tenantId: payload.tenantId,

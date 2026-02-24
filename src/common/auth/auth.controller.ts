@@ -59,8 +59,14 @@ export class AuthController {
       throw new UnauthorizedException('Missing refresh token');
     }
 
-    const { accessToken } = await this.auth.refresh({ refreshToken });
+    const { accessToken, refreshToken: newRefreshToken } =
+      await this.auth.refresh({ refreshToken });
     res.cookie(names.access, accessToken, accessCookieOptions(this.config));
+    res.cookie(
+      names.refresh,
+      newRefreshToken,
+      refreshCookieOptions(this.config),
+    );
   }
 
   @Post('logout')

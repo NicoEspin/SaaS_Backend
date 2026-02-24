@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderStatus, Prisma, StockMovementType } from '@prisma/client';
 
 import type { AuthUser } from '../../../common/auth/auth.types';
 import { PrismaService } from '../../../common/database/prisma.service';
@@ -411,6 +411,18 @@ export class CartsService {
           select: { id: true },
         });
 
+        const inventorySnapshots = await tx.branchInventory.findMany({
+          where: {
+            tenantId: user.tenantId,
+            branchId,
+            productId: { in: productItems.map((i) => i.productId) },
+          },
+          select: { productId: true, stockOnHand: true },
+        });
+        const stockSnapshotMap = new Map(
+          inventorySnapshots.map((s) => [s.productId, s.stockOnHand]),
+        );
+
         // Stock decrement (branch inventory) with gte guard.
         for (const item of productItems) {
           const updated = await tx.branchInventory.updateMany({
@@ -425,6 +437,26 @@ export class CartsService {
           if (updated.count === 0) {
             throw new ConflictException('Insufficient stock');
           }
+
+          const quantityBefore = stockSnapshotMap.get(item.productId) ?? 0;
+          const quantityAfter = quantityBefore - item.quantity;
+          await tx.stockMovement.create({
+            data: {
+              id: newId(),
+              tenantId: user.tenantId,
+              branchId,
+              productId: item.productId,
+              type: StockMovementType.SALE,
+              quantity: -item.quantity,
+              quantityBefore,
+              quantityAfter,
+              referenceId: cartId,
+              referenceType: 'ORDER',
+              createdBy: user.userId,
+            },
+            select: { id: true },
+          });
+          stockSnapshotMap.set(item.productId, quantityAfter);
         }
 
         const invoiceId = newId();

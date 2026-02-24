@@ -276,6 +276,18 @@ export class ProductsService {
     id: string,
     dto: UpdateProductDto,
   ): Promise<ProductView> {
+    const hasExplicitFields =
+      dto.code !== undefined ||
+      dto.name !== undefined ||
+      dto.description !== undefined ||
+      dto.isActive !== undefined ||
+      dto.categoryId !== undefined ||
+      dto.attributes !== undefined;
+
+    if (!hasExplicitFields) {
+      throw new BadRequestException('No fields to update');
+    }
+
     const current = await this.prisma.product.findFirst({
       where: { tenantId, id },
       select: { id: true, categoryId: true, attributes: true },
@@ -332,10 +344,6 @@ export class ProductsService {
       effectiveAttributes,
     );
     data.attributes = attributes;
-
-    if (Object.keys(data).length === 0) {
-      throw new BadRequestException('No fields to update');
-    }
 
     try {
       const updated = await this.prisma.product.updateMany({
