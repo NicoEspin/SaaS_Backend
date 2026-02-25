@@ -61,6 +61,7 @@ export class OnboardingService {
   async initial(dto: InitialOnboardingDto): Promise<InitialOnboardingResult> {
     const tenantSlug = normalizeSlug(dto.tenant.slug);
     const tenantName = dto.tenant.name.trim();
+    const branchName = dto.branch?.name?.trim() || 'Sucursal principal';
     const email = normalizeEmail(dto.admin.email);
     const passwordHash = await bcrypt.hash(dto.admin.password, 10);
 
@@ -75,9 +76,19 @@ export class OnboardingService {
           select: { id: true, slug: true, name: true },
         });
 
+        await tx.branch.create({
+          data: {
+            id: newId(),
+            tenantId: tenant.id,
+            name: branchName,
+          },
+          select: { id: true },
+        });
+
         const user = await tx.user.create({
           data: {
             id: newId(),
+            fullName: dto.admin.fullName.trim(),
             email,
             passwordHash,
           },

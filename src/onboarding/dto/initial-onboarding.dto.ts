@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsObject,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -26,6 +27,11 @@ export class InitialOnboardingTenantDto {
 }
 
 export class InitialOnboardingAdminDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  fullName!: string;
+
   @IsEmail()
   @MaxLength(320)
   email!: string;
@@ -36,11 +42,24 @@ export class InitialOnboardingAdminDto {
   password!: string;
 }
 
+export class InitialOnboardingBranchDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  name!: string;
+}
+
 export class InitialOnboardingDto {
   @IsObject()
   @ValidateNested()
   @Type(() => InitialOnboardingTenantDto)
   tenant!: InitialOnboardingTenantDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => InitialOnboardingBranchDto)
+  branch?: InitialOnboardingBranchDto;
 
   @IsObject()
   @ValidateNested()

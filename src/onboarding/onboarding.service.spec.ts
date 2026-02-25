@@ -12,7 +12,7 @@ describe('OnboardingService', () => {
     select: { id: true; slug: true; name: true };
   };
   type UserCreateArgs = {
-    data: { id: string; email: string; passwordHash: string };
+    data: { id: string; fullName: string; email: string; passwordHash: string };
     select: { id: true; email: true };
   };
   type MembershipCreateArgs = {
@@ -25,12 +25,20 @@ describe('OnboardingService', () => {
     select: { id: true; role: true };
   };
 
+  type BranchCreateArgs = {
+    data: { id: string; tenantId: string; name: string };
+    select: { id: true };
+  };
+
   const tx = {
     tenant: {
       create: jest.fn<
         Promise<{ id: string; slug: string; name: string }>,
         [TenantCreateArgs]
       >(),
+    },
+    branch: {
+      create: jest.fn<Promise<{ id: string }>, [BranchCreateArgs]>(),
     },
     user: {
       create: jest.fn<
@@ -69,6 +77,7 @@ describe('OnboardingService', () => {
       slug: 'acme',
       name: 'Acme',
     });
+    tx.branch.create.mockResolvedValue({ id: 'b1' });
     tx.user.create.mockResolvedValue({ id: 'u1', email: 'admin@acme.com' });
     tx.membership.create.mockResolvedValue({
       id: 'm1',
@@ -91,7 +100,12 @@ describe('OnboardingService', () => {
   it('creates tenant + admin and returns access token', async () => {
     const result = await service.initial({
       tenant: { name: 'Acme', slug: 'Acme' },
-      admin: { email: 'Admin@Acme.com', password: 'password123' },
+      branch: { name: 'Sucursal 1' },
+      admin: {
+        fullName: 'Admin Acme',
+        email: 'Admin@Acme.com',
+        password: 'password123',
+      },
     });
 
     expect(result).toEqual({
@@ -103,6 +117,7 @@ describe('OnboardingService', () => {
     });
 
     expect(tx.tenant.create).toHaveBeenCalledTimes(1);
+    expect(tx.branch.create).toHaveBeenCalledTimes(1);
     expect(tx.user.create).toHaveBeenCalledTimes(1);
     expect(tx.membership.create).toHaveBeenCalledTimes(1);
 
@@ -110,8 +125,13 @@ describe('OnboardingService', () => {
     expect(tenantCreateArgs.data.slug).toBe('acme');
     expect(tenantCreateArgs.data.name).toBe('Acme');
 
+    const branchCreateArgs = tx.branch.create.mock.calls[0][0];
+    expect(branchCreateArgs.data.tenantId).toBe('t1');
+    expect(branchCreateArgs.data.name).toBe('Sucursal 1');
+
     const userCreateArgs = tx.user.create.mock.calls[0][0];
     expect(userCreateArgs.data.email).toBe('admin@acme.com');
+    expect(userCreateArgs.data.fullName).toBe('Admin Acme');
 
     const membershipCreateArgs = tx.membership.create.mock.calls[0][0];
     expect(membershipCreateArgs.data.role).toBe(MembershipRole.OWNER);
@@ -128,7 +148,11 @@ describe('OnboardingService', () => {
     await expect(
       service.initial({
         tenant: { name: 'Acme', slug: 'acme' },
-        admin: { email: 'admin@acme.com', password: 'password123' },
+        admin: {
+          fullName: 'Admin',
+          email: 'admin@acme.com',
+          password: 'password123',
+        },
       }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
@@ -144,7 +168,11 @@ describe('OnboardingService', () => {
     await expect(
       service.initial({
         tenant: { name: 'Acme', slug: 'acme' },
-        admin: { email: 'admin@acme.com', password: 'password123' },
+        admin: {
+          fullName: 'Admin',
+          email: 'admin@acme.com',
+          password: 'password123',
+        },
       }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
