@@ -99,6 +99,7 @@ model User {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   memberships Membership[]
+  stockMovementsCreated StockMovement[] @relation("StockMovementCreatedBy")
 
   @@map("users")
 }
@@ -108,10 +109,12 @@ model Membership {
   tenantId  String         @map("tenant_id") @db.VarChar(26)
   userId    String         @map("user_id") @db.VarChar(26)
   role      MembershipRole
+  activeBranchId String?   @map("active_branch_id") @db.VarChar(26)
   createdAt DateTime       @default(now()) @map("created_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeBranch Branch? @relation("MembershipActiveBranch", fields: [activeBranchId], references: [id], onDelete: SetNull)
 
   refreshTokens RefreshToken[]
 
@@ -145,6 +148,8 @@ model Branch {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  activeForMemberships Membership[] @relation("MembershipActiveBranch")
 
   inventories BranchInventory[]
   orders      Order[]
@@ -289,6 +294,7 @@ model Order {
 
   items    OrderItem[]
   invoices Invoice[]
+  stockMovements StockMovement[] @relation("StockMovementOrder")
 
   @@unique([tenantId, number])
   @@index([tenantId, createdAt])
@@ -404,6 +410,7 @@ model StockMovement {
   quantity       Int
   quantityBefore Int               @map("quantity_before")
   quantityAfter  Int               @map("quantity_after")
+  orderId        String?           @map("order_id") @db.VarChar(26)
   referenceId    String?           @map("reference_id") @db.VarChar(26)
   referenceType  String?           @map("reference_type") @db.VarChar(32)
   note           String?           @db.VarChar(500)
@@ -413,9 +420,12 @@ model StockMovement {
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order   Order?  @relation("StockMovementOrder", fields: [orderId], references: [id], onDelete: SetNull)
+  createdByUser User? @relation("StockMovementCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([tenantId, branchId, createdAt])
   @@index([tenantId, productId, createdAt])
   @@index([tenantId, referenceId])
+  @@index([tenantId, branchId, productId])
   @@map("stock_movements")
 }

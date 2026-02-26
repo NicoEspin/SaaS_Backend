@@ -9,7 +9,7 @@ import crypto from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
 import { newId } from '../ids/new-id';
-import type { JwtPayload } from './auth.types';
+import type { AuthUser, JwtPayload } from './auth.types';
 import type { LoginDto } from './dto/login.dto';
 import { durationToSeconds } from './jwt.util';
 
@@ -18,6 +18,30 @@ function hashRefreshToken(token: string): string {
 }
 
 type DbClient = Prisma.TransactionClient | PrismaService;
+
+export type AuthSessionBranchView = {
+  id: string;
+  name: string;
+};
+
+export type AuthSessionResult = {
+  tenant: {
+    id: string;
+    slug: string;
+    name: string;
+  };
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+  };
+  membership: {
+    id: string;
+    role: AuthUser['role'];
+  };
+  branches: AuthSessionBranchView[];
+  activeBranch: AuthSessionBranchView | null;
+};
 
 @Injectable()
 export class AuthService {
@@ -69,6 +93,65 @@ export class AuthService {
     const refreshToken = await this.issueRefreshToken(membership.id);
 
     return { accessToken, refreshToken };
+  }
+
+  async getSession(user: AuthUser): Promise<AuthSessionResult> {
+    const membership = await this.prisma.membership.findUnique({
+      where: { id: user.membershipId },
+      select: {
+        id: true,
+        role: true,
+        userId: true,
+        tenantId: true,
+        activeBranchId: true,
+      },
+    });
+
+    if (
+      !membership ||
+      membership.userId !== user.userId ||
+      membership.tenantId !== user.tenantId
+    ) {
+      throw new UnauthorizedException('Invalid session');
+    }
+
+    const [tenant, dbUser, branches] = await Promise.all([
+      this.prisma.tenant.findUnique({
+        where: { id: user.tenantId },
+        select: { id: true, slug: true, name: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { id: true, email: true, fullName: true },
+      }),
+      this.prisma.branch.findMany({
+        where: { tenantId: user.tenantId },
+        select: { id: true, name: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    if (!tenant || !dbUser) {
+      throw new UnauthorizedException('Invalid session');
+    }
+
+    const activeBranch = membership.activeBranchId
+      ? (branches.find((b) => b.id === membership.activeBranchId) ??
+        (branches.length > 0 ? branches[0] : null))
+      : branches.length > 0
+        ? branches[0]
+        : null;
+
+    return {
+      tenant,
+      user: dbUser,
+      membership: {
+        id: membership.id,
+        role: membership.role,
+      },
+      branches,
+      activeBranch,
+    };
   }
 
   async issueAccessToken(payload: JwtPayload): Promise<string> {

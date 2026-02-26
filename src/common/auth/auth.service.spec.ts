@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
 import { AuthService } from './auth.service';
+import type { AuthUser } from './auth.types';
 
 function sha256(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex');
@@ -38,6 +39,19 @@ describe('AuthService', () => {
     where: { id: string; revokedAt: null; expiresAt: { gt: Date } };
     data: { revokedAt: Date; lastUsedAt: Date };
   };
+  type TenantFindUniqueArgs = {
+    where: { id: string };
+    select: { id: true; slug: true; name: true };
+  };
+  type UserFindUniqueArgs = {
+    where: { id: string };
+    select: { id: true; email: true; fullName: true };
+  };
+  type BranchFindManyArgs = {
+    where: { tenantId: string };
+    select: { id: true; name: true };
+    orderBy: { createdAt: 'asc' };
+  };
 
   const prisma = {
     refreshToken: {
@@ -63,6 +77,7 @@ describe('AuthService', () => {
           userId: string;
           tenantId: string;
           role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'VIEWER';
+          activeBranchId: string | null;
         } | null>,
         [
           {
@@ -72,9 +87,28 @@ describe('AuthService', () => {
               userId: true;
               tenantId: true;
               role: true;
+              activeBranchId: true;
             };
           },
         ]
+      >(),
+    },
+    tenant: {
+      findUnique: jest.fn<
+        Promise<{ id: string; slug: string; name: string } | null>,
+        [TenantFindUniqueArgs]
+      >(),
+    },
+    user: {
+      findUnique: jest.fn<
+        Promise<{ id: string; email: string; fullName: string } | null>,
+        [UserFindUniqueArgs]
+      >(),
+    },
+    branch: {
+      findMany: jest.fn<
+        Promise<Array<{ id: string; name: string }>>,
+        [BranchFindManyArgs]
       >(),
     },
     $transaction: jest.fn<Promise<unknown>, [(c: unknown) => unknown]>(),
@@ -171,6 +205,7 @@ describe('AuthService', () => {
       userId: 'u1',
       tenantId: 't1',
       role: 'ADMIN',
+      activeBranchId: null,
     });
 
     const tx: {
@@ -261,6 +296,7 @@ describe('AuthService', () => {
       userId: 'u1',
       tenantId: 't1',
       role: 'ADMIN',
+      activeBranchId: null,
     });
 
     const tx: {
@@ -295,5 +331,149 @@ describe('AuthService', () => {
     await expect(
       service.refresh({ refreshToken: 'raw-refresh' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('getSession returns tenant, user, membership, and branches', async () => {
+    prisma.membership.findUnique.mockResolvedValue({
+      id: 'm1',
+      userId: 'u1',
+      tenantId: 't1',
+      role: 'ADMIN',
+      activeBranchId: null,
+    });
+    prisma.tenant.findUnique.mockResolvedValue({
+      id: 't1',
+      slug: 'acme',
+      name: 'Acme Inc',
+    });
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      email: 'admin@acme.com',
+      fullName: 'Admin Acme',
+    });
+    prisma.branch.findMany.mockResolvedValue([
+      { id: 'b1', name: 'Sucursal principal' },
+      { id: 'b2', name: 'Centro' },
+    ]);
+
+    const user: AuthUser = {
+      userId: 'u1',
+      tenantId: 't1',
+      membershipId: 'm1',
+      role: 'ADMIN',
+    };
+
+    const result = await service.getSession(user);
+
+    expect(result.tenant).toEqual({ id: 't1', slug: 'acme', name: 'Acme Inc' });
+    expect(result.user).toEqual({
+      id: 'u1',
+      email: 'admin@acme.com',
+      fullName: 'Admin Acme',
+    });
+    expect(result.membership).toEqual({ id: 'm1', role: 'ADMIN' });
+    expect(result.branches).toEqual([
+      { id: 'b1', name: 'Sucursal principal' },
+      { id: 'b2', name: 'Centro' },
+    ]);
+    expect(result.activeBranch).toEqual({
+      id: 'b1',
+      name: 'Sucursal principal',
+    });
+
+    expect(prisma.membership.findUnique).toHaveBeenCalledWith({
+      where: { id: 'm1' },
+      select: {
+        id: true,
+        role: true,
+        userId: true,
+        tenantId: true,
+        activeBranchId: true,
+      },
+    });
+    expect(prisma.tenant.findUnique).toHaveBeenCalledWith({
+      where: { id: 't1' },
+      select: { id: true, slug: true, name: true },
+    });
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      select: { id: true, email: true, fullName: true },
+    });
+    expect(prisma.branch.findMany).toHaveBeenCalledWith({
+      where: { tenantId: 't1' },
+      select: { id: true, name: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  });
+
+  it('getSession rejects when membership does not exist', async () => {
+    prisma.membership.findUnique.mockResolvedValue(null);
+
+    const user: AuthUser = {
+      userId: 'u1',
+      tenantId: 't1',
+      membershipId: 'm1',
+      role: 'ADMIN',
+    };
+
+    await expect(service.getSession(user)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('getSession rejects when membership does not match JWT claims', async () => {
+    prisma.membership.findUnique.mockResolvedValue({
+      id: 'm1',
+      userId: 'u2',
+      tenantId: 't1',
+      role: 'ADMIN',
+      activeBranchId: null,
+    });
+
+    const user: AuthUser = {
+      userId: 'u1',
+      tenantId: 't1',
+      membershipId: 'm1',
+      role: 'ADMIN',
+    };
+
+    await expect(service.getSession(user)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('getSession uses membership activeBranchId when present', async () => {
+    prisma.membership.findUnique.mockResolvedValue({
+      id: 'm1',
+      userId: 'u1',
+      tenantId: 't1',
+      role: 'ADMIN',
+      activeBranchId: 'b2',
+    });
+    prisma.tenant.findUnique.mockResolvedValue({
+      id: 't1',
+      slug: 'acme',
+      name: 'Acme Inc',
+    });
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      email: 'admin@acme.com',
+      fullName: 'Admin Acme',
+    });
+    prisma.branch.findMany.mockResolvedValue([
+      { id: 'b1', name: 'Sucursal principal' },
+      { id: 'b2', name: 'Centro' },
+    ]);
+
+    const user: AuthUser = {
+      userId: 'u1',
+      tenantId: 't1',
+      membershipId: 'm1',
+      role: 'ADMIN',
+    };
+
+    const result = await service.getSession(user);
+
+    expect(result.activeBranch).toEqual({ id: 'b2', name: 'Centro' });
   });
 });

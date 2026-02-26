@@ -1,16 +1,21 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Post,
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 
-import { AuthService } from './auth.service';
+import { CurrentUser } from './current-user.decorator';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import type { AuthUser } from './auth.types';
+import { AuthService, type AuthSessionResult } from './auth.service';
 import {
   accessCookieClearOptions,
   accessCookieOptions,
@@ -34,6 +39,12 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly config: ConfigService<Env, true>,
   ) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('session')
+  async session(@CurrentUser() user: AuthUser): Promise<AuthSessionResult> {
+    return this.auth.getSession(user);
+  }
 
   @Post('login')
   @HttpCode(204)

@@ -3,9 +3,11 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../common/database/prisma.service';
 import { ProductsService } from './products.service';
+import { InventoryService } from '../modules/inventory/inventory.service';
 
 describe('ProductsService', () => {
   const prisma = {
+    $transaction: jest.fn(),
     product: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -22,6 +24,9 @@ describe('ProductsService', () => {
   };
 
   let service: ProductsService;
+  const inventory = {
+    initializeStock: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -30,6 +35,7 @@ describe('ProductsService', () => {
       providers: [
         ProductsService,
         { provide: PrismaService, useValue: prisma },
+        { provide: InventoryService, useValue: inventory },
       ],
     }).compile();
 

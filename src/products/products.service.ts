@@ -8,6 +8,7 @@ import { Prisma, ProductAttributeType } from '@prisma/client';
 
 import { PrismaService } from '../common/database/prisma.service';
 import { newId } from '../common/ids/new-id';
+import { InventoryService } from '../modules/inventory/inventory.service';
 import type { CreateProductAttributeDefinitionDto } from './dto/create-product-attribute-definition.dto';
 import type { CreateProductDto } from './dto/create-product.dto';
 import type { ListProductAttributeDefinitionsQueryDto } from './dto/list-product-attribute-definitions.query.dto';
@@ -150,7 +151,10 @@ function parseStoredAttributes(
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly inventory: InventoryService,
+  ) {}
 
   async create(tenantId: string, dto: CreateProductDto): Promise<ProductView> {
     const code = dto.code.trim();
@@ -174,19 +178,37 @@ export class ProductsService {
     );
 
     try {
-      const created = await this.prisma.product.create({
-        data: {
-          id: newId(),
-          tenantId,
-          categoryId,
-          code,
-          name,
-          description,
-          attributes,
-          isActive,
-        },
-        select: this.productSelect(),
+      const created = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.product.create({
+          data: {
+            id: newId(),
+            tenantId,
+            categoryId,
+            code,
+            name,
+            description,
+            attributes,
+            isActive,
+          },
+          select: this.productSelect(),
+        });
+
+        if (dto.initialStock && dto.initialStock.length > 0) {
+          for (const entry of dto.initialStock) {
+            await this.inventory.initializeStock(
+              tenantId,
+              entry.branchId,
+              created.id,
+              entry.stockOnHand,
+              entry.price,
+              tx,
+            );
+          }
+        }
+
+        return created;
       });
+
       return await this.toProductView(tenantId, created);
     } catch (err: unknown) {
       if (isP2002UniqueConstraintError(err)) {

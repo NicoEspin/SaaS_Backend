@@ -7,8 +7,10 @@ import { TenancyModule } from './common/tenancy/tenancy.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { ProductsModule } from './products/products.module';
 import { SalesModule } from './modules/sales/sales.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 import { ImportsExportsModule } from './imports-exports/imports-exports.module';
 import { CategoriesModule } from './categories/categories.module';
+import { BranchesModule } from './branches/branches.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -21,7 +23,9 @@ import { AppService } from './app.service';
     AuthModule,
     OnboardingModule,
     CategoriesModule,
+    BranchesModule,
     ProductsModule,
+    InventoryModule,
     SalesModule,
     ImportsExportsModule,
   ],

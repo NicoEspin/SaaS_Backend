@@ -28,6 +28,8 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `docs/file-map.md`: inventario completo de archivos (este se agrega en esta tarea).
 - `docs/onboarding-initial.md`: doc del endpoint publico de onboarding inicial.
 - `docs/products-crud.md`: doc de productos + import/export.
+- `docs/categories-crud.md`: doc de categories.
+- `docs/branches-crud.md`: doc de branches (CRUD + active branch).
 
 ## Prisma
 
@@ -37,6 +39,7 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `prisma/migrations/20260218100000_add_categories/migration.sql`: agrega categories y relation product->category.
 - `prisma/migrations/20260219120000_product_custom_attributes/migration.sql`: agrega JSONB attributes + definiciones de atributos.
 - `prisma/migrations/20260220192216_add_refresh_tokens/migration.sql`: agrega refresh_tokens e indices en products.
+- `prisma/migrations/20260226153000_membership_active_branch/migration.sql`: agrega `memberships.active_branch_id` (branch activo por membership).
 
 ## Source (NestJS)
 
@@ -96,6 +99,18 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `src/products/dto/update-product-attribute-definition.dto.ts`: DTO update attribute definition.
 - `src/products/dto/list-product-attribute-definitions.query.dto.ts`: DTO query list definitions.
 - `src/products/dto/product-attribute-definition-id.param.dto.ts`: DTO param `:id` para definiciones.
+
+### Branches
+
+- `src/branches/branches.module.ts`: modulo branches (CRUD + set active branch) con guard de roles.
+- `src/branches/branches.controller.ts`: endpoints `/branches` + `POST /branches/active`.
+- `src/branches/branches.service.ts`: logica CRUD tenant-scoped + persistencia activeBranch en membership.
+- `src/branches/branches.service.spec.ts`: unit tests del service.
+- `src/branches/dto/create-branch.dto.ts`: DTO create.
+- `src/branches/dto/update-branch.dto.ts`: DTO update.
+- `src/branches/dto/list-branches.query.dto.ts`: DTO query list (limit/cursor/q).
+- `src/branches/dto/branch-id.param.dto.ts`: DTO param `:id` (26 chars).
+- `src/branches/dto/set-active-branch.dto.ts`: DTO body para setear branch activo.
 
 ### Sales (carts)
 
