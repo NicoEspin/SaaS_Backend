@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseFilePipe,
   Post,
@@ -14,6 +15,18 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StreamableFile } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import type { AuthUser } from '../common/auth/auth.types';
@@ -28,6 +41,7 @@ import {
   type ImportMode,
 } from './import-export.types';
 import { ImportsExportsService } from './imports-exports.service';
+import { ConfirmImportDto } from './dto/confirm-import.dto';
 
 function parseEntity(value: string): ImportExportEntity {
   if ((IMPORT_EXPORT_ENTITIES as readonly string[]).includes(value)) {
@@ -69,13 +83,41 @@ function parseColumns(rawColumns: unknown): string[] | undefined {
   throw new BadRequestException('columns must be a comma separated string');
 }
 
+@ApiTags('Imports/Exports')
+@ApiBearerAuth('bearer')
+@ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class ImportsExportsController {
   constructor(private readonly importsExports: ImportsExportsService) {}
 
   @Post('imports/:entity/preview')
+  @HttpCode(200)
   @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Preview import file (validates + builds preview)' })
+  @ApiOkResponse({ description: 'Import preview result' })
+  @ApiBadRequestResponse({ description: 'Invalid entity/mode/file' })
+  @ApiParam({
+    name: 'entity',
+    type: String,
+    description: `Entity to import. Supported: ${IMPORT_EXPORT_ENTITIES.join(', ')}`,
+  })
+  @ApiQuery({
+    name: 'mode',
+    required: false,
+    type: String,
+    description: `Import mode. Supported: ${IMPORT_MODES.join(', ')}`,
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+      required: ['file'],
+    },
+  })
   async previewImport(
     @CurrentUser() user: AuthUser,
     @Param('entity') entityRaw: string,
@@ -93,15 +135,21 @@ export class ImportsExportsController {
   }
 
   @Post('imports/:entity/confirm')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Confirm import preview (writes to DB)' })
+  @ApiOkResponse({ description: 'Import confirm result' })
+  @ApiBadRequestResponse({ description: 'Invalid entity/previewId' })
+  @ApiParam({
+    name: 'entity',
+    type: String,
+    description: `Entity to import. Supported: ${IMPORT_EXPORT_ENTITIES.join(', ')}`,
+  })
   async confirmImport(
     @CurrentUser() user: AuthUser,
     @Param('entity') entityRaw: string,
-    @Body() body: { previewId?: string },
+    @Body() body: ConfirmImportDto,
   ) {
     const entity = parseEntity(entityRaw);
-    if (!body.previewId || body.previewId.length !== 26) {
-      throw new BadRequestException('previewId is required');
-    }
     return this.importsExports.confirmImport(
       user.tenantId,
       entity,
@@ -110,6 +158,30 @@ export class ImportsExportsController {
   }
 
   @Get('exports/:entity')
+  @ApiOperation({ summary: 'Export data (returns downloadable file)' })
+  @ApiOkResponse({
+    description:
+      'Export file. Response is a binary stream with content-disposition header.',
+  })
+  @ApiBadRequestResponse({ description: 'Invalid entity/format/columns' })
+  @ApiParam({
+    name: 'entity',
+    type: String,
+    description: `Entity to export. Supported: ${IMPORT_EXPORT_ENTITIES.join(', ')}`,
+  })
+  @ApiQuery({
+    name: 'format',
+    required: false,
+    type: String,
+    description: `Export format. Supported: ${EXPORT_FORMATS.join(', ')} (default: xlsx)`,
+  })
+  @ApiQuery({
+    name: 'columns',
+    required: false,
+    type: String,
+    description:
+      'Optional comma-separated list of columns to include. Can be repeated.',
+  })
   async export(
     @CurrentUser() user: AuthUser,
     @Param('entity') entityRaw: string,

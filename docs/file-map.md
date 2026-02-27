@@ -12,7 +12,7 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `.prettierrc`: config de prettier (single quotes, trailing commas).
 - `AGENTS.md`: reglas internas de desarrollo para este repo (NestJS/Prisma/Postgres).
 - `Dockerfile`: build/run de API en contenedor (genera Prisma client + build TS).
-- `README.md`: README base de Nest starter (no describe el dominio del proyecto).
+- `README.md`: README del proyecto (setup, auth, endpoints principales, quality gates).
 - `docker-compose.yml`: stack local (Postgres 16 + API) y comando de arranque con migrate deploy.
 - `eslint.config.mjs`: ESLint flat config con TypeScript type-checked + prettier.
 - `nest-cli.json`: config del Nest CLI (sourceRoot, deleteOutDir).
@@ -26,10 +26,15 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 
 - `docs/backend-advanced.md`: documentacion avanzada del backend (este se agrega en esta tarea).
 - `docs/file-map.md`: inventario completo de archivos (este se agrega en esta tarea).
+- `docs/openapi.json`: especificacion OpenAPI generada desde Swagger.
 - `docs/onboarding-initial.md`: doc del endpoint publico de onboarding inicial.
 - `docs/products-crud.md`: doc de productos + import/export.
 - `docs/categories-crud.md`: doc de categories.
 - `docs/branches-crud.md`: doc de branches (CRUD + active branch).
+- `docs/auth.md`: doc de endpoints de autenticacion.
+- `docs/customers-crud.md`: doc de customers (CRUD + soft delete).
+- `docs/carts.md`: doc de carts + checkout.
+- `docs/inventory.md`: doc de inventario (list/adjust/transfer).
 
 ## Prisma
 
@@ -39,11 +44,13 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `prisma/migrations/20260218100000_add_categories/migration.sql`: agrega categories y relation product->category.
 - `prisma/migrations/20260219120000_product_custom_attributes/migration.sql`: agrega JSONB attributes + definiciones de atributos.
 - `prisma/migrations/20260220192216_add_refresh_tokens/migration.sql`: agrega refresh_tokens e indices en products.
+- `prisma/migrations/20260227100000_add_customer_fields/migration.sql`: agrega billing fields a customers + `is_active`.
 - `prisma/migrations/20260226153000_membership_active_branch/migration.sql`: agrega `memberships.active_branch_id` (branch activo por membership).
 
 ## Source (NestJS)
 
 - `src/main.ts`: bootstrap de Nest (prefix, pipes, CORS, swagger, cookies).
+- `src/openapi.ts`: genera `docs/openapi.json` sin levantar el server.
 - `src/app.module.ts`: modulo raiz, importa features y modulos comunes.
 - `src/app.controller.ts`: endpoint `GET /` (hello world).
 - `src/app.service.ts`: service del `GET /`.
@@ -112,6 +119,14 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `src/branches/dto/branch-id.param.dto.ts`: DTO param `:id` (26 chars).
 - `src/branches/dto/set-active-branch.dto.ts`: DTO body para setear branch activo.
 
+### Customers
+
+- `src/customers/customers.module.ts`: modulo customers.
+- `src/customers/customers.controller.ts`: endpoints CRUD (soft delete).
+- `src/customers/customers.service.ts`: logica tenant-scoped + filtros + soft delete.
+- `src/customers/customers.service.spec.ts`: unit tests del service.
+- `src/customers/dto/*`: DTOs (create/update/list/params).
+
 ### Sales (carts)
 
 - `src/modules/sales/sales.module.ts`: modulo sales (agrega carts).
@@ -135,6 +150,7 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `src/imports-exports/import-file-parser.service.ts`: parser de CSV/XLSX a rows tipadas.
 - `src/imports-exports/import-preview-store.service.ts`: store in-memory de previews (TTL, one-shot).
 - `src/imports-exports/import-export.types.ts`: tipos compartidos para import/export.
+- `src/imports-exports/dto/confirm-import.dto.ts`: DTO del body para confirm import.
 - `src/imports-exports/entities/import-export-entity-adapter.interface.ts`: contrato de adapter.
 - `src/imports-exports/entities/products-import-export.adapter.ts`: adapter de products (preview/confirm/export, columnas base y `attr_`).
 

@@ -1,4 +1,5 @@
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsObject,
@@ -11,11 +12,21 @@ import {
 } from 'class-validator';
 
 export class InitialOnboardingTenantDto {
+  @ApiProperty({
+    description: 'Tenant display name.',
+    example: 'Acme SA',
+    maxLength: 200,
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(200)
   name!: string;
 
+  @ApiProperty({
+    description: 'Tenant slug (used for login).',
+    example: 'acme',
+    maxLength: 64,
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(64)
@@ -27,15 +38,30 @@ export class InitialOnboardingTenantDto {
 }
 
 export class InitialOnboardingAdminDto {
+  @ApiProperty({
+    description: 'Admin full name.',
+    example: 'Admin Acme',
+    maxLength: 200,
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(200)
   fullName!: string;
 
+  @ApiProperty({
+    description: 'Admin email.',
+    example: 'admin@acme.com',
+    maxLength: 320,
+  })
   @IsEmail()
   @MaxLength(320)
   email!: string;
 
+  @ApiProperty({
+    description: 'Admin password (min 8 chars).',
+    example: 'password123',
+    maxLength: 200,
+  })
   @IsString()
   @MinLength(8)
   @MaxLength(200)
@@ -43,6 +69,11 @@ export class InitialOnboardingAdminDto {
 }
 
 export class InitialOnboardingBranchDto {
+  @ApiProperty({
+    description: 'Initial branch name.',
+    example: 'Sucursal 1',
+    maxLength: 200,
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(200)
@@ -50,17 +81,30 @@ export class InitialOnboardingBranchDto {
 }
 
 export class InitialOnboardingDto {
+  @ApiProperty({
+    description: 'Tenant to create.',
+    type: InitialOnboardingTenantDto,
+  })
   @IsObject()
   @ValidateNested()
   @Type(() => InitialOnboardingTenantDto)
   tenant!: InitialOnboardingTenantDto;
 
+  @ApiPropertyOptional({
+    description:
+      'Optional initial branch to create. If omitted, a default branch may be created.',
+    type: InitialOnboardingBranchDto,
+  })
   @IsOptional()
   @IsObject()
   @ValidateNested()
   @Type(() => InitialOnboardingBranchDto)
   branch?: InitialOnboardingBranchDto;
 
+  @ApiProperty({
+    description: 'Admin user to create.',
+    type: InitialOnboardingAdminDto,
+  })
   @IsObject()
   @ValidateNested()
   @Type(() => InitialOnboardingAdminDto)

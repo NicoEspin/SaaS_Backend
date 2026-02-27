@@ -36,7 +36,14 @@ Archivo: `src/main.ts`.
 8. Swagger:
    - Titulo/version.
    - `addBearerAuth()` para Authorization header.
+   - `addCookieAuth()` para documentar auth via cookie `accessToken`.
    - Setup en `/api/docs`.
+
+Para generar una especificacion OpenAPI versionada en el repo:
+
+- Comando: `npm run openapi:generate`
+- Output: `docs/openapi.json`
+
 9. Listen en `PORT`.
 
 ## Modulos y limites (arquitectura)
@@ -51,7 +58,11 @@ Se importan modulos feature-first:
 - `TenancyModule`: helpers tenant (lookup por slug).
 - `AuthModule`: auth endpoints + JWT strategy.
 - `OnboardingModule`: bootstrap de tenant + admin.
+- `CategoriesModule`: CRUD de categorias.
+- `BranchesModule`: CRUD de sucursales + branch activo por membership.
+- `CustomersModule`: CRUD de customers (soft delete).
 - `ProductsModule`: CRUD de productos + definiciones de atributos.
+- `InventoryModule`: endpoints de inventario (list/adjust/transfer/stock).
 - `SalesModule`: features de ventas (hoy: carts).
 - `ImportsExportsModule`: import/export para entidades (hoy: products).
 

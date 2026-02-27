@@ -539,7 +539,7 @@ export class CartsService {
     customerId: string,
   ): Promise<void> {
     const customer = await this.prisma.customer.findFirst({
-      where: { id: customerId, tenantId },
+      where: { id: customerId, tenantId, isActive: true },
       select: { id: true },
     });
     if (!customer) throw new BadRequestException('Invalid customerId');

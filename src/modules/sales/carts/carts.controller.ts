@@ -3,11 +3,22 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 
 import { CurrentUser } from '../../../common/auth/current-user.decorator';
 import type { AuthUser } from '../../../common/auth/auth.types';
@@ -25,12 +36,23 @@ import {
   type CheckoutResultView,
 } from './carts.service';
 
+@ApiTags('Carts')
+@ApiBearerAuth('bearer')
+@ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
 @UseGuards(JwtAuthGuard)
 @Controller('branches/:branchId/carts')
 export class CartsController {
   constructor(private readonly carts: CartsService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create cart (order draft)' })
+  @ApiOkResponse({ description: 'Cart created' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiParam({
+    name: 'branchId',
+    type: String,
+    description: 'Branch id (26 chars)',
+  })
   async createCart(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto,
@@ -40,6 +62,15 @@ export class CartsController {
   }
 
   @Get(':cartId')
+  @ApiOperation({ summary: 'Get cart by id' })
+  @ApiOkResponse({ description: 'Cart detail' })
+  @ApiNotFoundResponse({ description: 'Cart not found' })
+  @ApiParam({
+    name: 'branchId',
+    type: String,
+    description: 'Branch id (26 chars)',
+  })
+  @ApiParam({ name: 'cartId', type: String, description: 'Cart id (26 chars)' })
   async getCart(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto & CartIdParamDto,
@@ -48,6 +79,17 @@ export class CartsController {
   }
 
   @Post(':cartId/items')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Add item to cart' })
+  @ApiOkResponse({ description: 'Cart updated' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiNotFoundResponse({ description: 'Cart not found' })
+  @ApiParam({
+    name: 'branchId',
+    type: String,
+    description: 'Branch id (26 chars)',
+  })
+  @ApiParam({ name: 'cartId', type: String, description: 'Cart id (26 chars)' })
   async addItem(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto & CartIdParamDto,
@@ -57,6 +99,21 @@ export class CartsController {
   }
 
   @Patch(':cartId/items/:productId')
+  @ApiOperation({ summary: 'Set item quantity' })
+  @ApiOkResponse({ description: 'Cart updated' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiNotFoundResponse({ description: 'Cart not found' })
+  @ApiParam({
+    name: 'branchId',
+    type: String,
+    description: 'Branch id (26 chars)',
+  })
+  @ApiParam({ name: 'cartId', type: String, description: 'Cart id (26 chars)' })
+  @ApiParam({
+    name: 'productId',
+    type: String,
+    description: 'Product id (26 chars)',
+  })
   async setItemQuantity(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto & CartIdParamDto & ProductIdParamDto,
@@ -72,6 +129,21 @@ export class CartsController {
   }
 
   @Delete(':cartId/items/:productId')
+  @ApiOperation({ summary: 'Remove item from cart' })
+  @ApiOkResponse({ description: 'Cart updated' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiNotFoundResponse({ description: 'Cart not found' })
+  @ApiParam({
+    name: 'branchId',
+    type: String,
+    description: 'Branch id (26 chars)',
+  })
+  @ApiParam({ name: 'cartId', type: String, description: 'Cart id (26 chars)' })
+  @ApiParam({
+    name: 'productId',
+    type: String,
+    description: 'Product id (26 chars)',
+  })
   async removeItem(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto & CartIdParamDto & ProductIdParamDto,
@@ -85,6 +157,17 @@ export class CartsController {
   }
 
   @Post(':cartId/checkout')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Checkout cart (creates invoice, stock movements)' })
+  @ApiOkResponse({ description: 'Checkout result' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiNotFoundResponse({ description: 'Cart not found' })
+  @ApiParam({
+    name: 'branchId',
+    type: String,
+    description: 'Branch id (26 chars)',
+  })
+  @ApiParam({ name: 'cartId', type: String, description: 'Cart id (26 chars)' })
   async checkout(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto & CartIdParamDto,

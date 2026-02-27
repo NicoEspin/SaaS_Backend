@@ -44,7 +44,7 @@ Validation rules:
 
 - name: string, 1-200 chars
 
-Response (200):
+Response (201):
 
 ```json
 {

@@ -10,6 +10,21 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 
 import { CurrentUser } from '../common/auth/current-user.decorator';
 import { JwtAuthGuard } from '../common/auth/jwt-auth.guard';
@@ -27,6 +42,10 @@ import { ListBranchesQueryDto } from './dto/list-branches.query.dto';
 import { SetActiveBranchDto } from './dto/set-active-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
 
+@ApiTags('Branches')
+@ApiBearerAuth('bearer')
+@ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
+@ApiForbiddenResponse({ description: 'Insufficient role' })
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('OWNER', 'ADMIN')
 @Controller('branches')
@@ -34,6 +53,9 @@ export class BranchesController {
   constructor(private readonly branches: BranchesService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create branch' })
+  @ApiCreatedResponse({ description: 'Branch created' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
   async create(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateBranchDto,
@@ -42,6 +64,12 @@ export class BranchesController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'List branches' })
+  @ApiOkResponse({ description: 'Branches list' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
   async list(
     @CurrentUser() user: AuthUser,
     @Query() query: ListBranchesQueryDto,
@@ -50,6 +78,11 @@ export class BranchesController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get branch by id' })
+  @ApiOkResponse({ description: 'Branch detail' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiNotFoundResponse({ description: 'Branch not found' })
+  @ApiParam({ name: 'id', type: String, description: 'Branch id (26 chars)' })
   async getById(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto,
@@ -58,6 +91,11 @@ export class BranchesController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update branch' })
+  @ApiOkResponse({ description: 'Branch updated' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiNotFoundResponse({ description: 'Branch not found' })
+  @ApiParam({ name: 'id', type: String, description: 'Branch id (26 chars)' })
   async update(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto,
@@ -67,6 +105,11 @@ export class BranchesController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete branch' })
+  @ApiOkResponse({ description: 'Branch deleted' })
+  @ApiNotFoundResponse({ description: 'Branch not found' })
+  @ApiConflictResponse({ description: 'Branch has related records' })
+  @ApiParam({ name: 'id', type: String, description: 'Branch id (26 chars)' })
   async remove(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto,
@@ -76,6 +119,10 @@ export class BranchesController {
 
   @Post('active')
   @HttpCode(204)
+  @ApiOperation({ summary: 'Set active branch for current membership' })
+  @ApiNoContentResponse({ description: 'Active branch set' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiNotFoundResponse({ description: 'Membership not found' })
   async setActive(
     @CurrentUser() user: AuthUser,
     @Body() dto: SetActiveBranchDto,

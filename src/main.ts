@@ -49,7 +49,22 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Stock SaaS API')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description:
+          'Send a valid JWT access token. This API also accepts the access token via cookie (see cookie auth).',
+      },
+      'bearer',
+    )
+    .addCookieAuth('accessToken', {
+      type: 'apiKey',
+      in: 'cookie',
+      description:
+        'Optional. If present, the API will read the access token from this cookie.',
+    })
     .build();
   const doc = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, doc);

@@ -65,6 +65,27 @@ enum StockMovementType {
   INITIAL
 }
 
+enum CustomerType {
+  RETAIL
+  WHOLESALE
+}
+
+enum CustomerTaxIdType {
+  CUIT
+  CUIL
+  DNI
+  PASSPORT
+  FOREIGN
+}
+
+enum CustomerVatCondition {
+  REGISTERED
+  MONOTAX
+  EXEMPT
+  FINAL_CONSUMER
+  FOREIGN
+}
+
 model Tenant {
   id        String   @id @db.VarChar(26)
   slug      String   @unique @db.VarChar(64)
@@ -253,16 +274,22 @@ model BranchInventory {
 }
 
 model Customer {
-  id        String   @id @db.VarChar(26)
-  tenantId  String   @map("tenant_id") @db.VarChar(26)
+  id           String               @id @db.VarChar(26)
+  tenantId     String               @map("tenant_id") @db.VarChar(26)
   // code is optional: @@unique allows multiple NULLs in Postgres
-  code      String?  @db.VarChar(64)
-  taxId     String?  @map("tax_id") @db.VarChar(32)
-  name      String   @db.VarChar(200)
-  email     String?  @db.VarChar(320)
-  phone     String?  @db.VarChar(32)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  code         String?              @db.VarChar(64)
+  type         CustomerType         @default(RETAIL)
+  taxId        String?              @map("tax_id") @db.VarChar(32)
+  taxIdType    CustomerTaxIdType?   @map("tax_id_type")
+  vatCondition CustomerVatCondition? @map("vat_condition")
+  name         String               @db.VarChar(200)
+  email        String?              @db.VarChar(320)
+  phone        String?              @db.VarChar(32)
+  address      String?              @db.VarChar(300)
+  notes        String?              @db.Text
+  isActive     Boolean              @default(true) @map("is_active")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   orders   Order[]
@@ -271,6 +298,8 @@ model Customer {
   @@unique([tenantId, code])
   @@index([tenantId])
   @@index([tenantId, email])
+  @@index([tenantId, taxId])
+  @@index([tenantId, isActive, id])
   @@map("customers")
 }
 

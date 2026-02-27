@@ -18,7 +18,11 @@ Body:
     "name": "Acme Inc",
     "slug": "acme"
   },
+  "branch": {
+    "name": "Sucursal 1"
+  },
   "admin": {
+    "fullName": "Admin Acme",
     "email": "admin@acme.com",
     "password": "password123"
   }
@@ -29,10 +33,16 @@ Validation rules:
 
 - tenant.name: string, 1-200 chars
 - tenant.slug: string, 1-64 chars, letters/numbers/hyphens (stored lowercased)
+- branch.name: optional string, 1-200 chars
+- admin.fullName: string, 1-200 chars
 - admin.email: email, max 320 chars (stored lowercased)
 - admin.password: string, 8-200 chars
 
 ## Response (200)
+
+This endpoint sets auth cookies and returns the created tenant/user/membership.
+
+- Cookies: `Set-Cookie: accessToken=...; HttpOnly` and `Set-Cookie: refreshToken=...; HttpOnly`
 
 ```json
 {
@@ -43,14 +53,13 @@ Validation rules:
   },
   "user": {
     "id": "01J...",
-    "email": "admin@acme.com"
+    "email": "admin@acme.com",
+    "fullName": "Admin Acme"
   },
   "membership": {
     "id": "01J...",
     "role": "OWNER"
-  },
-  "accessToken": "<jwt>",
-  "refreshToken": "<refresh>"
+  }
 }
 ```
 

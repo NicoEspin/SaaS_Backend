@@ -1,4 +1,10 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Res } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 
@@ -19,6 +25,7 @@ export type InitialOnboardingResponse = Omit<
   'accessToken' | 'refreshToken'
 >;
 
+@ApiTags('Onboarding')
 @Controller('onboarding')
 export class OnboardingController {
   constructor(
@@ -27,6 +34,14 @@ export class OnboardingController {
   ) {}
 
   @Post('initial')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Initial onboarding (creates tenant, admin user, membership)',
+  })
+  @ApiOkResponse({
+    description: 'Onboarding completed. Auth cookies set.',
+  })
+  @ApiBadRequestResponse({ description: 'Validation error' })
   async initial(
     @Body() dto: InitialOnboardingDto,
     @Res({ passthrough: true }) res: Response,

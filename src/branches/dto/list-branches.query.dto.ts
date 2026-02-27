@@ -1,4 +1,5 @@
 import { Type } from 'class-transformer';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsInt,
   IsOptional,
@@ -10,11 +11,17 @@ import {
 } from 'class-validator';
 
 export class ListBranchesQueryDto {
+  @ApiPropertyOptional({ description: 'Free-text search by branch name.' })
   @IsOptional()
   @IsString()
   @MinLength(1)
   q?: string;
 
+  @ApiPropertyOptional({
+    description: 'Max items per page (1..200).',
+    minimum: 1,
+    maximum: 200,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -22,6 +29,11 @@ export class ListBranchesQueryDto {
   @Max(200)
   limit?: number;
 
+  @ApiPropertyOptional({
+    description: 'Cursor for pagination (id < cursor).',
+    minLength: 26,
+    maxLength: 26,
+  })
   @IsOptional()
   @IsString()
   @Length(26, 26)

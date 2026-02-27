@@ -9,6 +9,15 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 
@@ -33,6 +42,7 @@ function readCookie(req: Request, name: string): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -42,12 +52,22 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('session')
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Get current session (from access token)' })
+  @ApiOkResponse({ description: 'Session info' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
   async session(@CurrentUser() user: AuthUser): Promise<AuthSessionResult> {
     return this.auth.getSession(user);
   }
 
   @Post('login')
   @HttpCode(204)
+  @ApiOperation({
+    summary: 'Login (sets access/refresh cookies; also returns 204)',
+  })
+  @ApiNoContentResponse({ description: 'Logged in. Cookies set.' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -60,6 +80,9 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(204)
+  @ApiOperation({ summary: 'Refresh session (rotates refresh token cookie)' })
+  @ApiNoContentResponse({ description: 'Refreshed. Cookies updated.' })
+  @ApiUnauthorizedResponse({ description: 'Missing/invalid refresh token' })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -82,6 +105,8 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(204)
+  @ApiOperation({ summary: 'Logout (clears auth cookies)' })
+  @ApiNoContentResponse({ description: 'Logged out. Cookies cleared.' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const names = authCookieNames(this.config);
     const refreshToken = readCookie(req, names.refresh);

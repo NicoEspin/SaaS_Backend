@@ -11,6 +11,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { ImportsExportsModule } from './imports-exports/imports-exports.module';
 import { CategoriesModule } from './categories/categories.module';
 import { BranchesModule } from './branches/branches.module';
+import { CustomersModule } from './customers/customers.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -24,6 +25,7 @@ import { AppService } from './app.service';
     OnboardingModule,
     CategoriesModule,
     BranchesModule,
+    CustomersModule,
     ProductsModule,
     InventoryModule,
     SalesModule,

@@ -1,0 +1,2941 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is up"
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/auth/session": {
+      "get": {
+        "operationId": "AuthController_session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Session info"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current session (from access token)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Logged in. Cookies set."
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        },
+        "summary": "Login (sets access/refresh cookies; also returns 204)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Refreshed. Cookies updated."
+          },
+          "401": {
+            "description": "Missing/invalid refresh token"
+          }
+        },
+        "summary": "Refresh session (rotates refresh token cookie)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Logged out. Cookies cleared."
+          }
+        },
+        "summary": "Logout (clears auth cookies)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/onboarding/initial": {
+      "post": {
+        "operationId": "OnboardingController_initial",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitialOnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Onboarding completed. Auth cookies set."
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Initial onboarding (creates tenant, admin user, membership)",
+        "tags": [
+          "Onboarding"
+        ]
+      }
+    },
+    "/api/v1/categories": {
+      "post": {
+        "operationId": "CategoriesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "409": {
+            "description": "Category name already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create category",
+        "tags": [
+          "Categories"
+        ]
+      },
+      "get": {
+        "operationId": "CategoriesController_list",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search by category name.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items per page (1..200).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor for pagination (id < cursor).",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categories list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List categories",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/v1/categories/{id}": {
+      "get": {
+        "operationId": "CategoriesController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Category id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category detail"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get category by id",
+        "tags": [
+          "Categories"
+        ]
+      },
+      "patch": {
+        "operationId": "CategoriesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Category id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "409": {
+            "description": "Category name already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update category",
+        "tags": [
+          "Categories"
+        ]
+      },
+      "delete": {
+        "operationId": "CategoriesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Category id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category deleted"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "409": {
+            "description": "Category has products"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete category",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/v1/categories/{id}/attribute-definitions": {
+      "get": {
+        "operationId": "CategoriesController_listAttributeDefinitions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Category id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attribute definitions list"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Category not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List attribute definitions for a category",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/v1/branches": {
+      "post": {
+        "operationId": "BranchesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBranchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Branch created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create branch",
+        "tags": [
+          "Branches"
+        ]
+      },
+      "get": {
+        "operationId": "BranchesController_list",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search by branch name.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items per page (1..200).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor for pagination (id < cursor).",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branches list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List branches",
+        "tags": [
+          "Branches"
+        ]
+      }
+    },
+    "/api/v1/branches/{id}": {
+      "get": {
+        "operationId": "BranchesController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branch detail"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Branch not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get branch by id",
+        "tags": [
+          "Branches"
+        ]
+      },
+      "patch": {
+        "operationId": "BranchesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBranchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Branch updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Branch not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update branch",
+        "tags": [
+          "Branches"
+        ]
+      },
+      "delete": {
+        "operationId": "BranchesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branch deleted"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Branch not found"
+          },
+          "409": {
+            "description": "Branch has related records"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete branch",
+        "tags": [
+          "Branches"
+        ]
+      }
+    },
+    "/api/v1/branches/active": {
+      "post": {
+        "operationId": "BranchesController_setActive",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetActiveBranchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Active branch set"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Membership not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set active branch for current membership",
+        "tags": [
+          "Branches"
+        ]
+      }
+    },
+    "/api/v1/customers": {
+      "post": {
+        "operationId": "CustomersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Customer created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "409": {
+            "description": "Customer code already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create customer",
+        "tags": [
+          "Customers"
+        ]
+      },
+      "get": {
+        "operationId": "CustomersController_list",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search across multiple fields.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "required": false,
+            "in": "query",
+            "description": "Filter by name (contains, case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": false,
+            "in": "query",
+            "description": "Filter by code (contains, case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "taxId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by taxId (contains, case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "required": false,
+            "in": "query",
+            "description": "Filter by email (contains, case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "phone",
+            "required": false,
+            "in": "query",
+            "description": "Filter by phone (contains, case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items per page (1..100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor for pagination (id < cursor).",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "description": "Optional. If provided, filters by active status.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "IsActive",
+            "required": false,
+            "in": "query",
+            "description": "Alias for isActive (prefer isActive).",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customers list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List customers",
+        "tags": [
+          "Customers"
+        ]
+      }
+    },
+    "/api/v1/customers/{id}": {
+      "get": {
+        "operationId": "CustomersController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Customer id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer detail"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Customer not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get customer by id",
+        "tags": [
+          "Customers"
+        ]
+      },
+      "patch": {
+        "operationId": "CustomersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Customer id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Customer not found"
+          },
+          "409": {
+            "description": "Customer code already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update customer",
+        "tags": [
+          "Customers"
+        ]
+      },
+      "delete": {
+        "operationId": "CustomersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Customer id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer deactivated (soft delete). Returns deleted=true"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Customer not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate customer (soft delete)",
+        "tags": [
+          "Customers"
+        ]
+      }
+    },
+    "/api/v1/products": {
+      "post": {
+        "operationId": "ProductsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "409": {
+            "description": "Product code already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create product",
+        "tags": [
+          "Products"
+        ]
+      },
+      "get": {
+        "operationId": "ProductsController_list",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search across name/code/category name.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "required": false,
+            "in": "query",
+            "description": "Filter by name (contains, case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": false,
+            "in": "query",
+            "description": "Filter by code (contains, case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryName",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category name (contains, case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category id (26 chars).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items per page (1..100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor for pagination (id < cursor).",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "description": "If provided, filters by isActive.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List products",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/attribute-definitions": {
+      "post": {
+        "operationId": "ProductsController_createAttributeDefinition",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductAttributeDefinitionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attribute definition created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "409": {
+            "description": "Attribute key already exists for this category"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create product attribute definition",
+        "tags": [
+          "Products"
+        ]
+      },
+      "get": {
+        "operationId": "ProductsController_listAttributeDefinitions",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Optional category id (26 chars) to filter by.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attribute definitions list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List product attribute definitions",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/attribute-definitions/{id}": {
+      "patch": {
+        "operationId": "ProductsController_updateAttributeDefinition",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Definition id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductAttributeDefinitionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Attribute definition updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Attribute definition not found"
+          },
+          "409": {
+            "description": "Attribute key already exists for this category"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update product attribute definition",
+        "tags": [
+          "Products"
+        ]
+      },
+      "delete": {
+        "operationId": "ProductsController_removeAttributeDefinition",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Definition id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attribute definition deleted"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Attribute definition not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete product attribute definition",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/{id}": {
+      "get": {
+        "operationId": "ProductsController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product detail"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get product by id",
+        "tags": [
+          "Products"
+        ]
+      },
+      "patch": {
+        "operationId": "ProductsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Product not found"
+          },
+          "409": {
+            "description": "Product code already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update product",
+        "tags": [
+          "Products"
+        ]
+      },
+      "delete": {
+        "operationId": "ProductsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product deleted"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete product",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/inventory": {
+      "get": {
+        "operationId": "InventoryController_getStockByBranch",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items per page (1..100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor for pagination (id < cursor).",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branch inventory list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List inventory by branch",
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/inventory/adjustments": {
+      "post": {
+        "operationId": "InventoryController_adjust",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdjustInventoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Inventory adjusted"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Adjust inventory",
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/inventory/transfers": {
+      "post": {
+        "operationId": "InventoryController_transfer",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "From branch id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferInventoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Inventory transferred"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Transfer inventory between branches",
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/products/{productId}/stock": {
+      "get": {
+        "operationId": "InventoryController_getStockByProduct",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "description": "Product id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product stock result"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get stock by product (across branches)",
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/carts": {
+      "post": {
+        "operationId": "CartsController_createCart",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cart created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create cart (order draft)",
+        "tags": [
+          "Carts"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/carts/{cartId}": {
+      "get": {
+        "operationId": "CartsController_getCart",
+        "parameters": [
+          {
+            "name": "cartId",
+            "required": true,
+            "in": "path",
+            "description": "Cart id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cart detail"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Cart not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get cart by id",
+        "tags": [
+          "Carts"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/carts/{cartId}/items": {
+      "post": {
+        "operationId": "CartsController_addItem",
+        "parameters": [
+          {
+            "name": "cartId",
+            "required": true,
+            "in": "path",
+            "description": "Cart id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cart updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Cart not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add item to cart",
+        "tags": [
+          "Carts"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/carts/{cartId}/items/{productId}": {
+      "patch": {
+        "operationId": "CartsController_setItemQuantity",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "description": "Product id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cartId",
+            "required": true,
+            "in": "path",
+            "description": "Cart id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCartItemQuantityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cart updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Cart not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set item quantity",
+        "tags": [
+          "Carts"
+        ]
+      },
+      "delete": {
+        "operationId": "CartsController_removeItem",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "description": "Product id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cartId",
+            "required": true,
+            "in": "path",
+            "description": "Cart id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cart updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Cart not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove item from cart",
+        "tags": [
+          "Carts"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/carts/{cartId}/checkout": {
+      "post": {
+        "operationId": "CartsController_checkout",
+        "parameters": [
+          {
+            "name": "cartId",
+            "required": true,
+            "in": "path",
+            "description": "Cart id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutCartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout result"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Cart not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Checkout cart (creates invoice, stock movements)",
+        "tags": [
+          "Carts"
+        ]
+      }
+    },
+    "/api/v1/imports/{entity}/preview": {
+      "post": {
+        "operationId": "ImportsExportsController_previewImport",
+        "parameters": [
+          {
+            "name": "entity",
+            "required": true,
+            "in": "path",
+            "description": "Entity to import. Supported: products",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": false,
+            "in": "query",
+            "description": "Import mode. Supported: create, update, upsert",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Import preview result"
+          },
+          "400": {
+            "description": "Invalid entity/mode/file"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview import file (validates + builds preview)",
+        "tags": [
+          "Imports/Exports"
+        ]
+      }
+    },
+    "/api/v1/imports/{entity}/confirm": {
+      "post": {
+        "operationId": "ImportsExportsController_confirmImport",
+        "parameters": [
+          {
+            "name": "entity",
+            "required": true,
+            "in": "path",
+            "description": "Entity to import. Supported: products",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmImportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Import confirm result"
+          },
+          "400": {
+            "description": "Invalid entity/previewId"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm import preview (writes to DB)",
+        "tags": [
+          "Imports/Exports"
+        ]
+      }
+    },
+    "/api/v1/exports/{entity}": {
+      "get": {
+        "operationId": "ImportsExportsController_export",
+        "parameters": [
+          {
+            "name": "entity",
+            "required": true,
+            "in": "path",
+            "description": "Entity to export. Supported: products",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columns",
+            "required": false,
+            "in": "query",
+            "description": "Optional comma-separated list of columns to include. Can be repeated.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "required": false,
+            "in": "query",
+            "description": "Export format. Supported: xlsx, csv (default: xlsx)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Export file. Response is a binary stream with content-disposition header."
+          },
+          "400": {
+            "description": "Invalid entity/format/columns"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export data (returns downloadable file)",
+        "tags": [
+          "Imports/Exports"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Stock SaaS API",
+    "description": "",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Send a valid JWT access token. This API also accepts the access token via cookie (see cookie auth)."
+      },
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "accessToken",
+        "description": "Optional. If present, the API will read the access token from this cookie."
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "tenantSlug": {
+            "type": "string",
+            "description": "Tenant slug.",
+            "example": "acme"
+          },
+          "email": {
+            "type": "string",
+            "description": "User email.",
+            "example": "admin@acme.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "User password.",
+            "example": "password123"
+          }
+        },
+        "required": [
+          "tenantSlug",
+          "email",
+          "password"
+        ]
+      },
+      "InitialOnboardingTenantDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tenant display name.",
+            "example": "Acme SA",
+            "maxLength": 200
+          },
+          "slug": {
+            "type": "string",
+            "description": "Tenant slug (used for login).",
+            "example": "acme",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ]
+      },
+      "InitialOnboardingBranchDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Initial branch name.",
+            "example": "Sucursal 1",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "InitialOnboardingAdminDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Admin full name.",
+            "example": "Admin Acme",
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "description": "Admin email.",
+            "example": "admin@acme.com",
+            "maxLength": 320
+          },
+          "password": {
+            "type": "string",
+            "description": "Admin password (min 8 chars).",
+            "example": "password123",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "password"
+        ]
+      },
+      "InitialOnboardingDto": {
+        "type": "object",
+        "properties": {
+          "tenant": {
+            "description": "Tenant to create.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InitialOnboardingTenantDto"
+              }
+            ]
+          },
+          "branch": {
+            "description": "Optional initial branch to create. If omitted, a default branch may be created.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InitialOnboardingBranchDto"
+              }
+            ]
+          },
+          "admin": {
+            "description": "Admin user to create.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InitialOnboardingAdminDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "tenant",
+          "admin"
+        ]
+      },
+      "CreateCategoryAttributeDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Attribute key (letters, numbers, underscore).",
+            "example": "talle",
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "description": "Attribute label.",
+            "example": "Talle",
+            "maxLength": 120
+          },
+          "type": {
+            "type": "string",
+            "description": "Attribute type.",
+            "enum": [
+              "TEXT",
+              "NUMBER",
+              "BOOLEAN",
+              "DATE",
+              "ENUM"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "description": "Optional unit.",
+            "example": "cm",
+            "maxLength": 24
+          },
+          "isRequired": {
+            "type": "boolean",
+            "description": "Whether the attribute is required."
+          },
+          "isVisibleInTable": {
+            "type": "boolean",
+            "description": "Whether the attribute is visible in product table."
+          },
+          "sortOrder": {
+            "type": "number",
+            "description": "Sort order (0..1000).",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "options": {
+            "description": "Options for ENUM attributes. Required when type=ENUM.",
+            "example": [
+              "S",
+              "M",
+              "L"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ]
+      },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Category name.",
+            "example": "Indumentaria",
+            "maxLength": 200
+          },
+          "attributeDefinitions": {
+            "description": "Optional attribute definitions to create along with the category.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateCategoryAttributeDefinitionDto"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Category name.",
+            "example": "Indumentaria",
+            "maxLength": 200
+          }
+        }
+      },
+      "CreateBranchDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Branch name.",
+            "example": "Sucursal Centro",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateBranchDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Branch name.",
+            "example": "Sucursal Centro",
+            "maxLength": 200
+          }
+        }
+      },
+      "SetActiveBranchDto": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch id (26 chars) to set as active for the current membership.",
+            "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+            "minLength": 26,
+            "maxLength": 26
+          }
+        },
+        "required": [
+          "branchId"
+        ]
+      },
+      "CreateCustomerDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Optional customer code. Must be unique per tenant when provided.",
+            "example": "C001",
+            "maxLength": 64
+          },
+          "type": {
+            "type": "string",
+            "description": "Customer type. Defaults to RETAIL.",
+            "enum": [
+              "RETAIL",
+              "WHOLESALE"
+            ],
+            "default": "RETAIL"
+          },
+          "taxId": {
+            "type": "string",
+            "description": "Tax id / document number (future billing fields).",
+            "example": "20123456789",
+            "maxLength": 32
+          },
+          "taxIdType": {
+            "type": "string",
+            "description": "Tax id type (future billing fields).",
+            "enum": [
+              "CUIT",
+              "CUIL",
+              "DNI",
+              "PASSPORT",
+              "FOREIGN"
+            ]
+          },
+          "vatCondition": {
+            "type": "string",
+            "description": "VAT condition (future billing fields).",
+            "enum": [
+              "REGISTERED",
+              "MONOTAX",
+              "EXEMPT",
+              "FINAL_CONSUMER",
+              "FOREIGN"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Customer display name.",
+            "example": "Juan Perez",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address.",
+            "example": "juan@example.com",
+            "maxLength": 320
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number.",
+            "example": "+54 11 5555-5555",
+            "maxLength": 32
+          },
+          "address": {
+            "type": "string",
+            "description": "Customer address (free text).",
+            "example": "Av. Siempre Viva 742, CABA",
+            "maxLength": 300
+          },
+          "notes": {
+            "type": "string",
+            "description": "Free text notes / observations.",
+            "example": "Prefers WhatsApp for contact.",
+            "maxLength": 5000
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Soft active flag. Defaults to true.",
+            "default": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCustomerDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "object",
+            "description": "Customer code. Send null to clear it.",
+            "example": "C001",
+            "maxLength": 64,
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Customer type.",
+            "enum": [
+              "RETAIL",
+              "WHOLESALE"
+            ]
+          },
+          "taxId": {
+            "type": "object",
+            "description": "Tax id / document number. Send null to clear it.",
+            "example": "20123456789",
+            "maxLength": 32,
+            "nullable": true
+          },
+          "taxIdType": {
+            "type": "string",
+            "description": "Tax id type. Send null to clear it.",
+            "enum": [
+              "CUIT",
+              "CUIL",
+              "DNI",
+              "PASSPORT",
+              "FOREIGN"
+            ],
+            "nullable": true
+          },
+          "vatCondition": {
+            "type": "string",
+            "description": "VAT condition. Send null to clear it.",
+            "enum": [
+              "REGISTERED",
+              "MONOTAX",
+              "EXEMPT",
+              "FINAL_CONSUMER",
+              "FOREIGN"
+            ],
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Customer display name.",
+            "example": "Juan Perez",
+            "maxLength": 200
+          },
+          "email": {
+            "type": "object",
+            "description": "Email address. Send null to clear it.",
+            "example": "juan@example.com",
+            "maxLength": 320,
+            "nullable": true
+          },
+          "phone": {
+            "type": "object",
+            "description": "Phone number. Send null to clear it.",
+            "example": "+54 11 5555-5555",
+            "maxLength": 32,
+            "nullable": true
+          },
+          "address": {
+            "type": "object",
+            "description": "Customer address. Send null to clear it.",
+            "example": "Av. Siempre Viva 742, CABA",
+            "maxLength": 300,
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "description": "Free text notes. Send null to clear it.",
+            "example": "Prefers WhatsApp for contact.",
+            "maxLength": 5000,
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Soft active flag (can be used to reactivate)."
+          }
+        }
+      },
+      "InitialStockEntryDto": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch id (26 chars) to initialize stock for.",
+            "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "stockOnHand": {
+            "type": "number",
+            "description": "Initial stock on hand (>= 0).",
+            "example": 10,
+            "minimum": 0
+          },
+          "price": {
+            "type": "number",
+            "description": "Initial price (>= 0).",
+            "example": 1000,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "branchId",
+          "stockOnHand",
+          "price"
+        ]
+      },
+      "CreateProductDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Product code (unique per tenant).",
+            "example": "SKU-001",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name.",
+            "example": "Remera Lisa",
+            "maxLength": 200
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Category id (26 chars).",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "description": {
+            "type": "string",
+            "description": "Description.",
+            "maxLength": 5000
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Soft active flag. Defaults to true.",
+            "default": true
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Product custom attributes (key/value). Validated against category definitions."
+          },
+          "initialStock": {
+            "description": "Optional initial stock entries to initialize inventories.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InitialStockEntryDto"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "CreateProductAttributeDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "description": "Category id (26 chars).",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "key": {
+            "type": "string",
+            "description": "Attribute key (lowercase letters, numbers, underscore).",
+            "example": "talle",
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "description": "Attribute label.",
+            "example": "Talle",
+            "maxLength": 120
+          },
+          "type": {
+            "type": "string",
+            "description": "Attribute type.",
+            "enum": [
+              "TEXT",
+              "NUMBER",
+              "BOOLEAN",
+              "DATE",
+              "ENUM"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "description": "Optional unit.",
+            "example": "cm",
+            "maxLength": 24
+          },
+          "isRequired": {
+            "type": "boolean",
+            "description": "Whether the attribute is required."
+          },
+          "isVisibleInTable": {
+            "type": "boolean",
+            "description": "Whether the attribute is visible in product table."
+          },
+          "sortOrder": {
+            "type": "number",
+            "description": "Sort order (0..1000).",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "options": {
+            "description": "Options for ENUM attributes. Required when type=ENUM.",
+            "example": [
+              "S",
+              "M",
+              "L"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "categoryId",
+          "key",
+          "label",
+          "type"
+        ]
+      },
+      "UpdateProductAttributeDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "description": "Move definition to another category (26 chars)."
+          },
+          "key": {
+            "type": "string",
+            "description": "Attribute key (lowercase letters, numbers, underscore).",
+            "example": "talle",
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "description": "Attribute label.",
+            "example": "Talle",
+            "maxLength": 120
+          },
+          "type": {
+            "type": "string",
+            "description": "Attribute type.",
+            "enum": [
+              "TEXT",
+              "NUMBER",
+              "BOOLEAN",
+              "DATE",
+              "ENUM"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "description": "Optional unit.",
+            "example": "cm",
+            "maxLength": 24
+          },
+          "isRequired": {
+            "type": "boolean",
+            "description": "Whether the attribute is required."
+          },
+          "isVisibleInTable": {
+            "type": "boolean",
+            "description": "Whether the attribute is visible in product table."
+          },
+          "sortOrder": {
+            "type": "number",
+            "description": "Sort order (0..1000).",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "options": {
+            "description": "Options for ENUM attributes. Required when type=ENUM.",
+            "example": [
+              "S",
+              "M",
+              "L"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "UpdateProductDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Product code.",
+            "example": "SKU-001",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name.",
+            "example": "Remera Lisa",
+            "maxLength": 200
+          },
+          "categoryId": {
+            "type": "object",
+            "description": "Category id (26 chars). Use null to clear."
+          },
+          "description": {
+            "type": "string",
+            "description": "Description. Use empty string to clear.",
+            "maxLength": 5000
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Soft active flag."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Product custom attributes (key/value). Validated against category definitions."
+          }
+        }
+      },
+      "AdjustInventoryDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "Product id (26 chars).",
+            "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity delta. Can be negative or positive.",
+            "example": 5
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional notes.",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "productId",
+          "quantity"
+        ]
+      },
+      "TransferInventoryDto": {
+        "type": "object",
+        "properties": {
+          "toBranchId": {
+            "type": "string",
+            "description": "Destination branch id (26 chars).",
+            "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "productId": {
+            "type": "string",
+            "description": "Product id (26 chars).",
+            "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity to transfer (>= 1).",
+            "example": 2,
+            "minimum": 1
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional notes.",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "toBranchId",
+          "productId",
+          "quantity"
+        ]
+      },
+      "CreateCartDto": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "Optional customer id. Must exist in the same tenant and be active (isActive=true).",
+            "minLength": 1
+          }
+        }
+      },
+      "AddCartItemDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "Product id to add (26 chars).",
+            "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity to add (>= 1).",
+            "example": 1,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "productId",
+          "quantity"
+        ]
+      },
+      "SetCartItemQuantityDto": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "number",
+            "description": "New quantity. Use 0 to remove the item.",
+            "example": 2,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "quantity"
+        ]
+      },
+      "CheckoutCartDto": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "Optional customer id to (re)assign on checkout. Must exist in the same tenant and be active (isActive=true).",
+            "minLength": 1
+          }
+        }
+      },
+      "ConfirmImportDto": {
+        "type": "object",
+        "properties": {
+          "previewId": {
+            "type": "string",
+            "description": "Preview id returned by the preview endpoint (26 chars).",
+            "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+            "minLength": 26,
+            "maxLength": 26
+          }
+        },
+        "required": [
+          "previewId"
+        ]
+      }
+    }
+  }
+}

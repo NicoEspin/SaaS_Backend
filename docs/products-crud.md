@@ -1,7 +1,11 @@
 # Products CRUD
 
-All endpoints require a valid `Authorization: Bearer <token>`.
-All operations are scoped to the authenticated user's `tenantId`.
+All endpoints require authentication via JWT.
+
+- Supported auth mechanisms:
+  - `Authorization: Bearer <token>`
+  - Access token cookie (same JWT as above)
+    All operations are scoped to the authenticated user's `tenantId`.
 
 Base path:
 
