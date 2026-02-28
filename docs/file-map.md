@@ -33,6 +33,7 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `docs/branches-crud.md`: doc de branches (CRUD + active branch).
 - `docs/auth.md`: doc de endpoints de autenticacion.
 - `docs/customers-crud.md`: doc de customers (CRUD + soft delete).
+- `docs/employees-crud.md`: doc de empleados (alta por admin/owner, rol, sucursal activa, mover sucursal).
 - `docs/carts.md`: doc de carts + checkout.
 - `docs/invoices.md`: doc de invoices (issue INTERNAL, PDF; ARCA planned).
 - `docs/inventory.md`: doc de inventario (list/adjust/transfer).
@@ -129,6 +130,14 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `src/customers/customers.service.ts`: logica tenant-scoped + filtros + soft delete.
 - `src/customers/customers.service.spec.ts`: unit tests del service.
 - `src/customers/dto/*`: DTOs (create/update/list/params).
+
+### Employees
+
+- `src/employees/employees.module.ts`: modulo employees.
+- `src/employees/employees.controller.ts`: endpoints `/employees` (solo OWNER/ADMIN).
+- `src/employees/employees.service.ts`: alta de user+membership (email unico global), list/get/update y move de sucursal via `activeBranchId`.
+- `src/employees/employees.service.spec.ts`: unit tests del service.
+- `src/employees/dto/*`: DTOs (create/update/list/params).
 
 ### Sales (carts)
 

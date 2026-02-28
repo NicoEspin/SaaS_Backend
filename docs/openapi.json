@@ -974,6 +974,229 @@
         ]
       }
     },
+    "/api/v1/employees": {
+      "post": {
+        "operationId": "EmployeesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Employee created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "409": {
+            "description": "Email already registered"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create employee (user + membership)",
+        "tags": [
+          "Employees"
+        ]
+      },
+      "get": {
+        "operationId": "EmployeesController_list",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor (membership id) for pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items to return (default 100).",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free text search (email or fullName).",
+            "schema": {
+              "example": "jane",
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by role.",
+            "schema": {
+              "enum": [
+                "OWNER",
+                "ADMIN",
+                "MANAGER",
+                "CASHIER",
+                "VIEWER"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "branchId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active branch id (26 chars).",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Employees list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List employees",
+        "tags": [
+          "Employees"
+        ]
+      }
+    },
+    "/api/v1/employees/{id}": {
+      "get": {
+        "operationId": "EmployeesController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Membership id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Employee detail"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Employee not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get employee by membership id",
+        "tags": [
+          "Employees"
+        ]
+      },
+      "patch": {
+        "operationId": "EmployeesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Membership id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Employee updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Employee not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update employee (role, active branch, name)",
+        "tags": [
+          "Employees"
+        ]
+      }
+    },
     "/api/v1/products": {
       "post": {
         "operationId": "ProductsController_create",
@@ -2840,6 +3063,84 @@
           "isActive": {
             "type": "boolean",
             "description": "Soft active flag (can be used to reactivate)."
+          }
+        }
+      },
+      "CreateEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Employee full name.",
+            "example": "Jane Doe",
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "description": "Employee email (unique globally).",
+            "example": "jane@acme.com",
+            "maxLength": 320
+          },
+          "password": {
+            "type": "string",
+            "description": "Employee password (min 8 chars).",
+            "example": "password123",
+            "maxLength": 200
+          },
+          "role": {
+            "type": "string",
+            "description": "Employee role within the tenant.",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MANAGER",
+              "CASHIER",
+              "VIEWER"
+            ],
+            "example": "MANAGER"
+          },
+          "branchId": {
+            "type": "string",
+            "description": "Initial active branch id (26 chars).",
+            "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+            "minLength": 26,
+            "maxLength": 26
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "password",
+          "role",
+          "branchId"
+        ]
+      },
+      "UpdateEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Employee full name.",
+            "example": "Jane Doe",
+            "maxLength": 200
+          },
+          "role": {
+            "type": "string",
+            "description": "Employee role within the tenant.",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MANAGER",
+              "CASHIER",
+              "VIEWER"
+            ]
+          },
+          "branchId": {
+            "type": "string",
+            "description": "Move employee to this branch (sets activeBranchId).",
+            "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+            "minLength": 26,
+            "maxLength": 26
           }
         }
       },

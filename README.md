@@ -62,6 +62,23 @@ Notes:
 
 - Carts/checkout only accept active customers (`isActive=true`).
 
+## Employees
+
+Employees are managed by `OWNER` / `ADMIN` users and are modeled as:
+
+- `User` (global email identity) + `Membership` (tenant-scoped role + active branch)
+
+Endpoints:
+
+- `POST /api/v1/employees` (create user + membership; rejects if email already exists)
+- `GET /api/v1/employees`
+- `GET /api/v1/employees/:id` (membership id)
+- `PATCH /api/v1/employees/:id` (update role, move branch via `activeBranchId`, update name)
+
+Docs:
+
+- `docs/employees-crud.md`
+
 ## Invoices
 
 Invoices are created from carts checkout and can later be issued as:

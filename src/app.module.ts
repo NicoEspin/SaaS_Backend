@@ -12,6 +12,7 @@ import { ImportsExportsModule } from './imports-exports/imports-exports.module';
 import { CategoriesModule } from './categories/categories.module';
 import { BranchesModule } from './branches/branches.module';
 import { CustomersModule } from './customers/customers.module';
+import { EmployeesModule } from './employees/employees.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -26,6 +27,7 @@ import { AppService } from './app.service';
     CategoriesModule,
     BranchesModule,
     CustomersModule,
+    EmployeesModule,
     ProductsModule,
     InventoryModule,
     SalesModule,
