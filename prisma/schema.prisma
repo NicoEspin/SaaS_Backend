@@ -53,6 +53,19 @@ enum InvoiceFiscalStatus {
   REJECTED
 }
 
+enum PurchaseOrderStatus {
+  DRAFT
+  CONFIRMED
+  PARTIALLY_RECEIVED
+  CANCELLED
+  COMPLETED
+}
+
+enum PurchaseReceiptStatus {
+  POSTED
+  VOID
+}
+
 enum PaymentMethod {
   CASH
   CARD
@@ -132,6 +145,12 @@ model Tenant {
   branchInventories BranchInventory[]
   stockMovements    StockMovement[]
 
+  suppliers          Supplier[]
+  purchaseOrders     PurchaseOrder[]
+  purchaseOrderItems PurchaseOrderItem[]
+  purchaseReceipts   PurchaseReceipt[]
+  purchaseReceiptItems PurchaseReceiptItem[]
+
   @@map("tenants")
 }
 
@@ -164,6 +183,9 @@ model Membership {
   refreshTokens RefreshToken[]
 
   createdOrders Order[] @relation("OrderCreatedByMembership")
+
+  createdPurchaseOrders PurchaseOrder[] @relation("PurchaseOrderCreatedByMembership")
+  createdPurchaseReceipts PurchaseReceipt[] @relation("PurchaseReceiptCreatedByMembership")
 
   @@unique([tenantId, userId])
   @@index([userId])
@@ -201,6 +223,8 @@ model Branch {
   inventories BranchInventory[]
   orders      Order[]
   invoices    Invoice[]
+  purchaseOrders  PurchaseOrder[]
+  purchaseReceipts PurchaseReceipt[]
   fiscalSettings BranchFiscalSettings?
   invoiceSequences InvoiceSequence[]
   payments    Payment[]
@@ -231,12 +255,147 @@ model Product {
   invoiceLines InvoiceLine[]
   stockMovements StockMovement[]
 
+  purchaseOrderItems PurchaseOrderItem[]
+  purchaseReceiptItems PurchaseReceiptItem[]
+
   @@unique([tenantId, code])
   @@index([tenantId])
   @@index([tenantId, name])
   @@index([tenantId, code])
   @@index([tenantId, categoryId])
   @@map("products")
+}
+
+model Supplier {
+  id           String   @id @db.VarChar(26)
+  tenantId     String   @map("tenant_id") @db.VarChar(26)
+  name         String   @db.VarChar(200)
+  email        String?  @db.VarChar(320)
+  phone        String?  @db.VarChar(32)
+  address      String?  @db.VarChar(300)
+  taxId        String?  @map("tax_id") @db.VarChar(32)
+  paymentTerms String?  @map("payment_terms") @db.VarChar(64)
+  notes        String?  @db.Text
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  purchaseOrders   PurchaseOrder[]
+  purchaseReceipts PurchaseReceipt[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@index([tenantId, isActive, id])
+  @@map("suppliers")
+}
+
+model PurchaseOrder {
+  id                    String             @id @db.VarChar(26)
+  tenantId              String             @map("tenant_id") @db.VarChar(26)
+  branchId              String             @map("branch_id") @db.VarChar(26)
+  supplierId            String             @map("supplier_id") @db.VarChar(26)
+  number                String             @db.VarChar(32)
+  status                PurchaseOrderStatus @default(DRAFT)
+  expectedAt            DateTime?          @map("expected_at")
+  notes                 String?            @db.Text
+  createdByMembershipId String?            @map("created_by_membership_id") @db.VarChar(26)
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdByMembership Membership? @relation("PurchaseOrderCreatedByMembership", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+
+  items    PurchaseOrderItem[]
+  receipts PurchaseReceipt[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, branchId, status, createdAt])
+  @@index([tenantId, supplierId, status, createdAt])
+  @@index([tenantId, branchId, createdByMembershipId, status])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String   @id @db.VarChar(26)
+  tenantId        String   @map("tenant_id") @db.VarChar(26)
+  purchaseOrderId String   @map("purchase_order_id") @db.VarChar(26)
+  productId       String?  @map("product_id") @db.VarChar(26)
+  nameSnapshot    String   @map("name_snapshot") @db.VarChar(200)
+  codeSnapshot    String?  @map("code_snapshot") @db.VarChar(64)
+  quantityOrdered Int      @map("quantity_ordered")
+  receivedQty     Int      @default(0) @map("received_qty")
+  agreedUnitCost  Decimal  @map("agreed_unit_cost") @db.Decimal(12, 2)
+  lineTotal       Decimal  @map("line_total") @db.Decimal(12, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  receiptItems PurchaseReceiptItem[]
+
+  @@index([tenantId, purchaseOrderId])
+  @@index([productId])
+  @@map("purchase_order_items")
+}
+
+model PurchaseReceipt {
+  id                    String               @id @db.VarChar(26)
+  tenantId              String               @map("tenant_id") @db.VarChar(26)
+  branchId              String               @map("branch_id") @db.VarChar(26)
+  supplierId            String               @map("supplier_id") @db.VarChar(26)
+  purchaseOrderId       String               @map("purchase_order_id") @db.VarChar(26)
+  number                String               @db.VarChar(32)
+  status                PurchaseReceiptStatus @default(POSTED)
+  receivedAt            DateTime             @map("received_at")
+  notes                 String?              @db.Text
+  payableId             String?              @map("payable_id") @db.VarChar(26)
+  createdByMembershipId String?              @map("created_by_membership_id") @db.VarChar(26)
+  createdAt             DateTime             @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  createdByMembership Membership? @relation("PurchaseReceiptCreatedByMembership", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+
+  items PurchaseReceiptItem[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, receivedAt])
+  @@index([tenantId, branchId, receivedAt])
+  @@index([tenantId, supplierId, receivedAt])
+  @@index([tenantId, purchaseOrderId, receivedAt])
+  @@map("purchase_receipts")
+}
+
+model PurchaseReceiptItem {
+  id                String   @id @db.VarChar(26)
+  tenantId          String   @map("tenant_id") @db.VarChar(26)
+  purchaseReceiptId String   @map("purchase_receipt_id") @db.VarChar(26)
+  purchaseOrderItemId String @map("purchase_order_item_id") @db.VarChar(26)
+  productId         String?  @map("product_id") @db.VarChar(26)
+  nameSnapshot      String   @map("name_snapshot") @db.VarChar(200)
+  codeSnapshot      String?  @map("code_snapshot") @db.VarChar(64)
+  quantityReceived  Int      @map("quantity_received")
+  actualUnitCost    Decimal  @map("actual_unit_cost") @db.Decimal(12, 2)
+  lineTotal         Decimal  @map("line_total") @db.Decimal(12, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchaseReceipt PurchaseReceipt @relation(fields: [purchaseReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderItem PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, purchaseReceiptId])
+  @@index([tenantId, purchaseOrderItemId])
+  @@index([productId])
+  @@map("purchase_receipt_items")
 }
 
 model Category {

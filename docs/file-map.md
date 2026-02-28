@@ -37,6 +37,7 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `docs/carts.md`: doc de carts + checkout.
 - `docs/invoices.md`: doc de invoices (issue INTERNAL, PDF; ARCA planned).
 - `docs/inventory.md`: doc de inventario (list/adjust/transfer).
+- `docs/purchasing.md`: doc de compras (suppliers + purchase orders + receipts).
 
 ## Prisma
 
@@ -50,6 +51,8 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `prisma/migrations/20260226153000_membership_active_branch/migration.sql`: agrega `memberships.active_branch_id` (branch activo por membership).
 - `prisma/migrations/20260227204819_invoices_vat_and_billing/migration.sql`: agrega IVA a products/invoice_lines, emision interna de invoices, y tablas ARCA-ready.
 - `prisma/migrations/20260227211000_carts_current_by_membership/migration.sql`: agrega `orders.created_by_membership_id` y un unique partial index para 1 cart DRAFT por user+branch.
+- `prisma/migrations/20260228140000_purchasing_v1/migration.sql`: agrega suppliers + purchase orders + purchase receipts (compras).
+- `prisma/migrations/20260228150000_purchase_order_partially_received/migration.sql`: agrega `PARTIALLY_RECEIVED` a `PurchaseOrderStatus`.
 
 ## Source (NestJS)
 
@@ -111,6 +114,14 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `src/products/dto/list-product-attribute-definitions.query.dto.ts`: DTO query list definitions.
 - `src/products/dto/product-attribute-definition-id.param.dto.ts`: DTO param `:id` para definiciones.
 
+### Inventory
+
+- `src/modules/inventory/inventory.module.ts`: modulo inventory.
+- `src/modules/inventory/inventory.controller.ts`: endpoints inventory (list/adjust/transfer/stock).
+- `src/modules/inventory/inventory.service.ts`: logica de inventario (incluye recepcion de compras).
+- `src/modules/inventory/inventory.service.spec.ts`: unit tests del service.
+- `src/modules/inventory/dto/*`: DTOs inventory.
+
 ### Branches
 
 - `src/branches/branches.module.ts`: modulo branches (CRUD + set active branch) con guard de roles.
@@ -161,6 +172,20 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `src/modules/sales/invoices/invoices.service.ts`: logica de emision INTERNAL + secuencias + armado de data para PDF.
 - `src/modules/sales/invoices/pdf/invoice-pdf.service.ts`: generacion PDF (variant internal).
 - `src/modules/sales/invoices/dto/*`: DTOs de params/query/body.
+
+### Purchasing (suppliers + purchase orders)
+
+- `src/modules/purchasing/purchasing.module.ts`: modulo purchasing (agrupa suppliers + purchase orders).
+- `src/modules/purchasing/suppliers/suppliers.module.ts`: modulo suppliers.
+- `src/modules/purchasing/suppliers/suppliers.controller.ts`: endpoints `/suppliers` (OWNER/ADMIN/MANAGER).
+- `src/modules/purchasing/suppliers/suppliers.service.ts`: CRUD/list de suppliers (tenant-scoped).
+- `src/modules/purchasing/suppliers/suppliers.service.spec.ts`: unit tests del service.
+- `src/modules/purchasing/suppliers/dto/*`: DTOs suppliers.
+- `src/modules/purchasing/purchase-orders/purchase-orders.module.ts`: modulo purchase orders (integra ProductsModule + InventoryModule).
+- `src/modules/purchasing/purchase-orders/purchase-orders.controller.ts`: endpoints `/purchase-orders` + receipts.
+- `src/modules/purchasing/purchase-orders/purchase-orders.service.ts`: logica de OCs, recepciones parciales, y cierre automatico.
+- `src/modules/purchasing/purchase-orders/purchase-orders.service.spec.ts`: unit tests del service.
+- `src/modules/purchasing/purchase-orders/dto/*`: DTOs purchase orders/receipts.
 
 ### Lib (money)
 

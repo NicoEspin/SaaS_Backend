@@ -13,6 +13,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { BranchesModule } from './branches/branches.module';
 import { CustomersModule } from './customers/customers.module';
 import { EmployeesModule } from './employees/employees.module';
+import { PurchasingModule } from './modules/purchasing/purchasing.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -31,6 +32,7 @@ import { AppService } from './app.service';
     ProductsModule,
     InventoryModule,
     SalesModule,
+    PurchasingModule,
     ImportsExportsModule,
   ],
   controllers: [AppController],

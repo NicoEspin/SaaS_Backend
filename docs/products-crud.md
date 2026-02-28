@@ -38,6 +38,11 @@ Notes:
 - Keys and value types are validated against product attribute definitions configured for that category.
 - `vatRate` is optional and defaults to `0.21` (21%). Prices are treated as VAT-included in invoices.
 
+Inventory notes:
+
+- Product creation supports optional `initialStock` entries (per branch) to initialize `BranchInventory`.
+- Purchasing can also create products from a purchase order line (`newProduct`). Those products are created without `initialStock`; stock is incremented only when goods are received via purchase receipts.
+
 Errors:
 
 - 409 Conflict: product code already exists (within the same tenant)

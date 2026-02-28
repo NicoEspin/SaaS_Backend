@@ -64,6 +64,7 @@ Se importan modulos feature-first:
 - `ProductsModule`: CRUD de productos + definiciones de atributos.
 - `InventoryModule`: endpoints de inventario (list/adjust/transfer/stock).
 - `SalesModule`: features de ventas (hoy: carts).
+- `PurchasingModule`: features de compras (suppliers + purchase orders + receipts).
 - `ImportsExportsModule`: import/export para entidades (hoy: products).
 
 Regla practica: Controllers solo HTTP (DTO, guards, params). Toda logica vive en Services. Acceso a DB via PrismaService y `select` explicitos.
@@ -146,12 +147,25 @@ Implica: no se crean multiples clientes; Nest inyecta uno global.
 
 - Base para flujo de ventas y facturacion. En este repo hoy se usan en `CartsService` (cart = Order).
 
+`Supplier` + `PurchaseOrder` + `PurchaseOrderItem` + `PurchaseReceipt` + `PurchaseReceiptItem`:
+
+- Flujo de compras (proveedores, ordenes de compra y recepciones).
+- Regla: el stock se impacta solo al recibir mercaderia (crear un `PurchaseReceipt`). Confirmar una OC no toca inventario.
+- Costos:
+  - `PurchaseOrderItem.agreedUnitCost`: costo acordado con el proveedor.
+  - `PurchaseReceiptItem.actualUnitCost`: costo real facturado.
+  - `BranchInventory.cost`: se actualiza por promedio ponderado usando `actualUnitCost`.
+- Auditoria:
+  - cada recepcion crea un `StockMovement` con `type=PURCHASE_RECEIPT`, `referenceType='PURCHASE_RECEIPT'` y `referenceId=<receiptId>`.
+
 ### Migraciones
 
 - `20260217154134_init_tenant_branch_domain`: crea enums y tablas base (tenants/users/memberships/branches/products/inventory/customers/orders/invoices/payments) + indices.
 - `20260218100000_add_categories`: agrega `categories` y `products.category_id`.
 - `20260219120000_product_custom_attributes`: agrega `ProductAttributeType`, `products.attributes` y `product_attribute_definitions`.
 - `20260220192216_add_refresh_tokens`: agrega `refresh_tokens` + indices extra en products.
+- `20260228140000_purchasing_v1`: agrega suppliers + purchase orders + receipts.
+- `20260228150000_purchase_order_partially_received`: agrega estado `PARTIALLY_RECEIVED` para recepciones parciales.
 
 ## Autenticacion y autorizacion
 

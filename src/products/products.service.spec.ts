@@ -7,13 +7,25 @@ import { InventoryService } from '../modules/inventory/inventory.service';
 
 describe('ProductsService', () => {
   const prisma = {
-    $transaction: jest.fn(),
+    $transaction: jest.fn<Promise<unknown>, [(c: unknown) => unknown]>(),
     product: {
       create: jest.fn(),
       findMany: jest.fn(),
       findFirst: jest.fn(),
       updateMany: jest.fn(),
       deleteMany: jest.fn(),
+    },
+    category: {
+      findFirst: jest.fn(),
+    },
+    productAttributeDefinition: {
+      findMany: jest.fn(),
+    },
+  };
+
+  const tx = {
+    product: {
+      create: jest.fn(),
     },
     category: {
       findFirst: jest.fn(),
@@ -30,6 +42,9 @@ describe('ProductsService', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
+    prisma.$transaction.mockImplementation((fn: (c: typeof tx) => unknown) =>
+      Promise.resolve(fn(tx)),
+    );
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -70,12 +85,12 @@ describe('ProductsService', () => {
         attributes: { color: 'rojo' },
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.product.create).not.toHaveBeenCalled();
+    expect(tx.product.create).not.toHaveBeenCalled();
   });
 
   it('validates custom attribute types against definitions', async () => {
-    prisma.category.findFirst.mockResolvedValueOnce({ id: 'c1' });
-    prisma.productAttributeDefinition.findMany.mockResolvedValueOnce([
+    tx.category.findFirst.mockResolvedValueOnce({ id: 'c1' });
+    tx.productAttributeDefinition.findMany.mockResolvedValueOnce([
       {
         key: 'color',
         label: 'Color',
@@ -93,6 +108,6 @@ describe('ProductsService', () => {
         attributes: { color: 1 },
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.product.create).not.toHaveBeenCalled();
+    expect(tx.product.create).not.toHaveBeenCalled();
   });
 });

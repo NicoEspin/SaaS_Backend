@@ -52,6 +52,90 @@ export type StockTransferResult = {
 export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async receivePurchaseLine(
+    tenantId: string,
+    branchId: string,
+    productId: string,
+    qty: number,
+    actualUnitCost: number,
+    receiptId: string,
+    userId: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (!Number.isInteger(qty) || qty <= 0) {
+      throw new BadRequestException('qty must be an integer >= 1');
+    }
+    if (!Number.isFinite(actualUnitCost) || actualUnitCost < 0) {
+      throw new BadRequestException('actualUnitCost must be a number >= 0');
+    }
+
+    await this.requireBranch(tx, tenantId, branchId);
+    await this.requireProduct(tx, tenantId, productId);
+
+    const whereUnique = {
+      tenantId_branchId_productId: { tenantId, branchId, productId },
+    };
+
+    const existing = await tx.branchInventory.findUnique({
+      where: whereUnique,
+      select: { stockOnHand: true, cost: true },
+    });
+
+    const quantityBefore = existing?.stockOnHand ?? 0;
+    const quantityAfter = quantityBefore + qty;
+
+    await tx.branchInventory.upsert({
+      where: whereUnique,
+      update: {
+        stockOnHand: { increment: qty },
+      },
+      create: {
+        id: newId(),
+        tenantId,
+        branchId,
+        productId,
+        stockOnHand: qty,
+      },
+      select: { id: true },
+    });
+
+    const actualUnitCostDecimal = new Prisma.Decimal(actualUnitCost);
+    const nextCost = existing
+      ? (() => {
+          const costBefore = existing.cost ?? actualUnitCostDecimal;
+          const totalCost = costBefore
+            .mul(quantityBefore)
+            .plus(actualUnitCostDecimal.mul(qty));
+          return totalCost
+            .div(quantityAfter)
+            .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+        })()
+      : actualUnitCostDecimal;
+
+    await tx.branchInventory.update({
+      where: whereUnique,
+      data: { cost: nextCost },
+      select: { id: true },
+    });
+
+    await tx.stockMovement.create({
+      data: {
+        id: newId(),
+        tenantId,
+        branchId,
+        productId,
+        type: StockMovementType.PURCHASE_RECEIPT,
+        quantity: qty,
+        quantityBefore,
+        quantityAfter,
+        referenceType: 'PURCHASE_RECEIPT',
+        referenceId: receiptId,
+        createdBy: userId,
+      },
+      select: { id: true },
+    });
+  }
+
   async initializeStock(
     tenantId: string,
     branchId: string,

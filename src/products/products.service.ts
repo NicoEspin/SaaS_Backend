@@ -19,6 +19,8 @@ import type { UpdateProductDto } from './dto/update-product.dto';
 type ProductAttributePrimitive = string | number | boolean;
 type ProductAttributes = Record<string, ProductAttributePrimitive>;
 
+type DbClient = Prisma.TransactionClient | PrismaService;
+
 type ProductAttributeDefinitionView = {
   id: string;
   categoryId: string;
@@ -156,7 +158,11 @@ export class ProductsService {
     private readonly inventory: InventoryService,
   ) {}
 
-  async create(tenantId: string, dto: CreateProductDto): Promise<ProductView> {
+  async create(
+    tenantId: string,
+    dto: CreateProductDto,
+    tx?: Prisma.TransactionClient,
+  ): Promise<ProductView> {
     const code = dto.code.trim();
     const name = dto.name.trim();
     const descriptionRaw = dto.description?.trim();
@@ -169,47 +175,24 @@ export class ProductsService {
     if (name.length === 0)
       throw new BadRequestException('name cannot be empty');
 
-    const categoryId = dto.categoryId;
-    await this.ensureCategoryExists(tenantId, categoryId);
-    const attributes = await this.normalizeAndValidateAttributes(
-      tenantId,
-      categoryId ?? null,
-      dto.attributes,
-    );
-
     try {
-      const created = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.product.create({
-          data: {
-            id: newId(),
-            tenantId,
-            categoryId,
-            code,
-            name,
-            description,
-            attributes,
-            isActive,
-          },
-          select: this.productSelect(),
+      if (tx) {
+        return await this.createWithTx(tx, tenantId, dto, {
+          code,
+          name,
+          description,
+          isActive,
         });
+      }
 
-        if (dto.initialStock && dto.initialStock.length > 0) {
-          for (const entry of dto.initialStock) {
-            await this.inventory.initializeStock(
-              tenantId,
-              entry.branchId,
-              created.id,
-              entry.stockOnHand,
-              entry.price,
-              tx,
-            );
-          }
-        }
-
-        return created;
-      });
-
-      return await this.toProductView(tenantId, created);
+      return await this.prisma.$transaction((innerTx) =>
+        this.createWithTx(innerTx, tenantId, dto, {
+          code,
+          name,
+          description,
+          isActive,
+        }),
+      );
     } catch (err: unknown) {
       if (isP2002UniqueConstraintError(err)) {
         const targets = errorTargets(err);
@@ -220,6 +203,56 @@ export class ProductsService {
       }
       throw err;
     }
+  }
+
+  private async createWithTx(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    dto: CreateProductDto,
+    normalized: {
+      code: string;
+      name: string;
+      description: string | null;
+      isActive: boolean;
+    },
+  ): Promise<ProductView> {
+    const categoryId = dto.categoryId;
+    await this.ensureCategoryExists(tx, tenantId, categoryId);
+    const attributes = await this.normalizeAndValidateAttributes(
+      tx,
+      tenantId,
+      categoryId ?? null,
+      dto.attributes,
+    );
+
+    const created = await tx.product.create({
+      data: {
+        id: newId(),
+        tenantId,
+        categoryId,
+        code: normalized.code,
+        name: normalized.name,
+        description: normalized.description,
+        attributes,
+        isActive: normalized.isActive,
+      },
+      select: this.productSelect(),
+    });
+
+    if (dto.initialStock && dto.initialStock.length > 0) {
+      for (const entry of dto.initialStock) {
+        await this.inventory.initializeStock(
+          tenantId,
+          entry.branchId,
+          created.id,
+          entry.stockOnHand,
+          entry.price,
+          tx,
+        );
+      }
+    }
+
+    return this.toProductView(tx, tenantId, created);
   }
 
   async list(
@@ -280,7 +313,7 @@ export class ProductsService {
     const items = hasMore ? rows.slice(0, limit) : rows;
     const nextCursor = hasMore ? (items[items.length - 1]?.id ?? null) : null;
 
-    const viewItems = await this.toProductViews(tenantId, items);
+    const viewItems = await this.toProductViews(this.prisma, tenantId, items);
     return { items: viewItems, nextCursor };
   }
 
@@ -290,7 +323,7 @@ export class ProductsService {
       select: this.productSelect(),
     });
     if (!product) throw new NotFoundException('Product not found');
-    return this.toProductView(tenantId, product);
+    return this.toProductView(this.prisma, tenantId, product);
   }
 
   async update(
@@ -347,7 +380,7 @@ export class ProductsService {
         effectiveAttributes = {};
       } else {
         const categoryId = dto.categoryId;
-        await this.ensureCategoryExists(tenantId, categoryId);
+        await this.ensureCategoryExists(this.prisma, tenantId, categoryId);
         data.categoryId = categoryId;
         effectiveCategoryId = categoryId;
         if (categoryId !== current.categoryId && dto.attributes === undefined) {
@@ -361,6 +394,7 @@ export class ProductsService {
     }
 
     const attributes = await this.normalizeAndValidateAttributes(
+      this.prisma,
       tenantId,
       effectiveCategoryId,
       effectiveAttributes,
@@ -398,7 +432,7 @@ export class ProductsService {
     tenantId: string,
     dto: CreateProductAttributeDefinitionDto,
   ): Promise<ProductAttributeDefinitionView> {
-    await this.ensureCategoryExists(tenantId, dto.categoryId);
+    await this.ensureCategoryExists(this.prisma, tenantId, dto.categoryId);
 
     const key = normalizeAttributeKey(dto.key);
     const label = dto.label.trim();
@@ -442,7 +476,7 @@ export class ProductsService {
     query: ListProductAttributeDefinitionsQueryDto,
   ): Promise<ProductAttributeDefinitionListResult> {
     if (query.categoryId) {
-      await this.ensureCategoryExists(tenantId, query.categoryId);
+      await this.ensureCategoryExists(this.prisma, tenantId, query.categoryId);
     }
 
     const rows = await this.prisma.productAttributeDefinition.findMany({
@@ -477,7 +511,7 @@ export class ProductsService {
     }
 
     const nextCategoryId = dto.categoryId ?? existing.categoryId;
-    await this.ensureCategoryExists(tenantId, nextCategoryId);
+    await this.ensureCategoryExists(this.prisma, tenantId, nextCategoryId);
 
     const nextType = dto.type ?? existing.type;
     const data: Prisma.ProductAttributeDefinitionUncheckedUpdateInput = {
@@ -584,11 +618,12 @@ export class ProductsService {
   }
 
   private async ensureCategoryExists(
+    client: DbClient,
     tenantId: string,
     categoryId: string | undefined,
   ): Promise<void> {
     if (!categoryId) return;
-    const category = await this.prisma.category.findFirst({
+    const category = await client.category.findFirst({
       where: { tenantId, id: categoryId },
       select: { id: true },
     });
@@ -622,6 +657,7 @@ export class ProductsService {
   }
 
   private async normalizeAndValidateAttributes(
+    client: DbClient,
     tenantId: string,
     categoryId: string | null,
     rawAttributes: unknown,
@@ -637,7 +673,7 @@ export class ProductsService {
       return {};
     }
 
-    const definitions = await this.prisma.productAttributeDefinition.findMany({
+    const definitions = await client.productAttributeDefinition.findMany({
       where: { tenantId, categoryId },
       select: {
         key: true,
@@ -799,6 +835,7 @@ export class ProductsService {
   }
 
   private async toProductViews(
+    client: DbClient,
     tenantId: string,
     rows: ProductRow[],
   ): Promise<ProductView[]> {
@@ -815,7 +852,7 @@ export class ProductsService {
 
     const definitions =
       categoryIds.length > 0
-        ? await this.prisma.productAttributeDefinition.findMany({
+        ? await client.productAttributeDefinition.findMany({
             where: {
               tenantId,
               categoryId: { in: categoryIds },
@@ -882,10 +919,11 @@ export class ProductsService {
   }
 
   private async toProductView(
+    client: DbClient,
     tenantId: string,
     row: ProductRow,
   ): Promise<ProductView> {
-    const [item] = await this.toProductViews(tenantId, [row]);
+    const [item] = await this.toProductViews(client, tenantId, [row]);
     if (!item) {
       throw new NotFoundException('Product not found');
     }

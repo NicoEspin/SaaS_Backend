@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "purchase_orders_tenant_id_branch_id_created_by_membership_id_st" RENAME TO "purchase_orders_tenant_id_branch_id_created_by_membership_i_idx";

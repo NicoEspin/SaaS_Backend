@@ -2443,6 +2443,527 @@
         ]
       }
     },
+    "/api/v1/suppliers": {
+      "post": {
+        "operationId": "SuppliersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Supplier created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create supplier",
+        "tags": [
+          "Suppliers"
+        ]
+      },
+      "get": {
+        "operationId": "SuppliersController_list",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search across name/email/taxId.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items per page (1..100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor for pagination (id < cursor).",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "description": "If provided, filters by isActive.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Suppliers list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List suppliers",
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/api/v1/suppliers/{id}": {
+      "get": {
+        "operationId": "SuppliersController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Supplier id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supplier detail"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Supplier not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get supplier by id",
+        "tags": [
+          "Suppliers"
+        ]
+      },
+      "patch": {
+        "operationId": "SuppliersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Supplier id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Supplier updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Supplier not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update supplier",
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/api/v1/purchase-orders": {
+      "post": {
+        "operationId": "PurchaseOrdersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePurchaseOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Purchase order created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create purchase order",
+        "tags": [
+          "PurchaseOrders"
+        ]
+      },
+      "get": {
+        "operationId": "PurchaseOrdersController_list",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by branch id (26 chars).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "supplierId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by supplier id (26 chars).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by status.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "CONFIRMED",
+                "PARTIALLY_RECEIVED",
+                "CANCELLED",
+                "COMPLETED"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search (number, notes).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items per page (1..100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor for pagination (id < cursor).",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Purchase orders list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List purchase orders",
+        "tags": [
+          "PurchaseOrders"
+        ]
+      }
+    },
+    "/api/v1/purchase-orders/{id}": {
+      "get": {
+        "operationId": "PurchaseOrdersController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Purchase order id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Purchase order detail"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Purchase order not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get purchase order by id",
+        "tags": [
+          "PurchaseOrders"
+        ]
+      }
+    },
+    "/api/v1/purchase-orders/{id}/confirm": {
+      "post": {
+        "operationId": "PurchaseOrdersController_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Purchase order id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Purchase order confirmed"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Purchase order not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm purchase order",
+        "tags": [
+          "PurchaseOrders"
+        ]
+      }
+    },
+    "/api/v1/purchase-orders/{id}/cancel": {
+      "post": {
+        "operationId": "PurchaseOrdersController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Purchase order id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Purchase order cancelled"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Purchase order not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel purchase order",
+        "tags": [
+          "PurchaseOrders"
+        ]
+      }
+    },
+    "/api/v1/purchase-orders/{id}/receipts": {
+      "post": {
+        "operationId": "PurchaseOrdersController_receive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Purchase order id (26 chars)",
+            "schema": {
+              "minLength": 26,
+              "maxLength": 26,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePurchaseReceiptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Purchase receipt created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Purchase order not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Receive purchase order (create receipt)",
+        "tags": [
+          "PurchaseOrders"
+        ]
+      }
+    },
     "/api/v1/imports/{entity}/preview": {
       "post": {
         "operationId": "ImportsExportsController_previewImport",
@@ -3529,6 +4050,265 @@
         },
         "required": [
           "docType"
+        ]
+      },
+      "CreateSupplierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Supplier name.",
+            "example": "ACME S.A.",
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "description": "Email.",
+            "maxLength": 320
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone.",
+            "maxLength": 32
+          },
+          "address": {
+            "type": "string",
+            "description": "Address.",
+            "maxLength": 300
+          },
+          "taxId": {
+            "type": "string",
+            "description": "Tax id.",
+            "maxLength": 32
+          },
+          "paymentTerms": {
+            "type": "string",
+            "description": "Payment terms (free-form).",
+            "example": "NET30",
+            "maxLength": 64
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes.",
+            "maxLength": 5000
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Soft active flag. Defaults to true.",
+            "default": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateSupplierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Supplier name.",
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "description": "Email.",
+            "maxLength": 320
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone.",
+            "maxLength": 32
+          },
+          "address": {
+            "type": "string",
+            "description": "Address.",
+            "maxLength": 300
+          },
+          "taxId": {
+            "type": "string",
+            "description": "Tax id.",
+            "maxLength": 32
+          },
+          "paymentTerms": {
+            "type": "string",
+            "description": "Payment terms.",
+            "maxLength": 64
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes.",
+            "maxLength": 5000
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Soft active flag."
+          }
+        }
+      },
+      "NewProductDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Product code (unique per tenant).",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name.",
+            "maxLength": 200
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Category id (26 chars).",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "description": {
+            "type": "string",
+            "description": "Description.",
+            "maxLength": 5000
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Soft active flag. Defaults to true.",
+            "default": true
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Product custom attributes (key/value). Validated against category definitions."
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "CreatePurchaseOrderItemDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "Existing product id (26 chars)."
+          },
+          "newProduct": {
+            "description": "New product to create for this line.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NewProductDto"
+              }
+            ]
+          },
+          "quantityOrdered": {
+            "type": "number",
+            "description": "Quantity ordered (>= 1).",
+            "minimum": 1
+          },
+          "agreedUnitCost": {
+            "type": "number",
+            "description": "Agreed unit cost (>= 0).",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "quantityOrdered",
+          "agreedUnitCost"
+        ]
+      },
+      "CreatePurchaseOrderDto": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch id (26 chars).",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "supplierId": {
+            "type": "string",
+            "description": "Supplier id (26 chars).",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "expectedAt": {
+            "type": "string",
+            "description": "Expected delivery date/time."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes.",
+            "maxLength": 5000
+          },
+          "items": {
+            "description": "Order items.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreatePurchaseOrderItemDto"
+            }
+          }
+        },
+        "required": [
+          "branchId",
+          "supplierId",
+          "items"
+        ]
+      },
+      "CreatePurchaseReceiptItemDto": {
+        "type": "object",
+        "properties": {
+          "purchaseOrderItemId": {
+            "type": "string",
+            "description": "Purchase order item id (26 chars).",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "quantityReceived": {
+            "type": "number",
+            "description": "Quantity received (>= 1).",
+            "minimum": 1
+          },
+          "actualUnitCost": {
+            "type": "number",
+            "description": "Actual unit cost (>= 0).",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "purchaseOrderItemId",
+          "quantityReceived",
+          "actualUnitCost"
+        ]
+      },
+      "CreatePurchaseReceiptDto": {
+        "type": "object",
+        "properties": {
+          "receivedAt": {
+            "type": "string",
+            "description": "Received at (ISO date-time string)."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes.",
+            "maxLength": 5000
+          },
+          "payableId": {
+            "type": "string",
+            "description": "Future link to payable record (26 chars).",
+            "minLength": 26,
+            "maxLength": 26
+          },
+          "items": {
+            "description": "Receipt items.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreatePurchaseReceiptItemDto"
+            }
+          }
+        },
+        "required": [
+          "receivedAt",
+          "items"
         ]
       },
       "ConfirmImportDto": {

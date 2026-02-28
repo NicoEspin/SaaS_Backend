@@ -8,6 +8,10 @@ Backend API for the Stock Management SaaS.
 - Swagger UI: `/api/docs`
 - OpenAPI JSON (generated): `docs/openapi.json` (run `npm run openapi:generate`)
 
+Docs:
+
+- `docs/purchasing.md` (suppliers + purchase orders + receipts)
+
 ## Requirements
 
 - Node.js + npm
