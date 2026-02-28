@@ -62,6 +62,25 @@ Notes:
 
 - Carts/checkout only accept active customers (`isActive=true`).
 
+## Invoices
+
+Invoices are created from carts checkout and can later be issued as:
+
+- `INTERNAL` (supported now): internal numbering + printable PDF.
+- `ARCA` (planned): fiscal issuance (CAE/QR/etc.).
+
+Important:
+
+- `POST /api/v1/branches/:branchId/carts/:cartId/checkout` creates an invoice in `DRAFT`.
+- To finalize it, call `POST /api/v1/branches/:branchId/invoices/:invoiceId/issue`.
+
+Endpoints (branch-scoped):
+
+- `GET /api/v1/branches/:branchId/invoices`
+- `GET /api/v1/branches/:branchId/invoices/:invoiceId`
+- `POST /api/v1/branches/:branchId/invoices/:invoiceId/issue`
+- `GET /api/v1/branches/:branchId/invoices/:invoiceId/pdf?variant=internal`
+
 ## Prisma / migrations
 
 - Generate client: `npm run prisma:generate`

@@ -283,22 +283,46 @@ Archivos: `src/modules/sales/carts/*`.
 Endpoints:
 
 - `POST /api/v1/branches/:branchId/carts` crea un cart (Order DRAFT).
+- `GET /api/v1/branches/:branchId/carts/current` obtiene el cart DRAFT actual del usuario.
+- `POST /api/v1/branches/:branchId/carts/current` obtiene o crea el cart DRAFT actual.
 - `GET /api/v1/branches/:branchId/carts/:cartId` obtiene cart + items.
 - `POST /api/v1/branches/:branchId/carts/:cartId/items` agrega item (suma cantidad si ya existe).
 - `PATCH /api/v1/branches/:branchId/carts/:cartId/items/:productId` setea cantidad (0 elimina).
 - `DELETE /api/v1/branches/:branchId/carts/:cartId/items/:productId` elimina item.
 - `POST /api/v1/branches/:branchId/carts/:cartId/checkout` confirma (stock decrement + invoice).
 
+Factura/Invoices:
+
+- Checkout crea la `Invoice` en `DRAFT` y calcula IVA por linea (precios tratados como IVA incluido).
+- La emision de la factura se hace por separado via `InvoicesModule`.
+
 Detalles de integridad (service `src/modules/sales/carts/carts.service.ts`):
 
 - Editable solo en `OrderStatus.DRAFT`.
+- Un cart DRAFT se scopia por `tenantId + branchId + membershipId` (1 por usuario y sucursal).
 - `addItem` y `setItemQuantity` corren en transaccion y recalculan totales.
 - `checkout`:
   - Lock optimista: `updateMany` cambia `DRAFT -> PENDING` y si `count=0` falla.
   - Recalcula totals desde items para evitar totals stale.
   - Decrementa stock con `updateMany` + `stockOnHand >= qty`.
-  - Crea invoice + lines (snapshot de descripcion/qty/precio).
+  - Crea invoice + lines (snapshot de descripcion/qty/precio + IVA desglosado por linea) en `InvoiceStatus.DRAFT`.
   - Marca order como `CONFIRMED`.
+
+### Facturacion: Invoices (issue + PDF)
+
+Archivos: `src/modules/sales/invoices/*`, doc: `docs/invoices.md`.
+
+Endpoints:
+
+- `GET /api/v1/branches/:branchId/invoices` lista facturas (cursor pagination).
+- `GET /api/v1/branches/:branchId/invoices/:invoiceId` detalle.
+- `POST /api/v1/branches/:branchId/invoices/:invoiceId/issue` emite la factura.
+- `GET /api/v1/branches/:branchId/invoices/:invoiceId/pdf?variant=internal` genera PDF interno.
+
+Disenio:
+
+- `INTERNAL`: emision soportada hoy, asigna `displayNumber` secuencial por sucursal y tipo (A/B).
+- `ARCA`: reservado (se agrego modelo/estructura para integrarlo sin tocar checkout).
 
 Tradeoffs:
 

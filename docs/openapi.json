@@ -1606,6 +1606,88 @@
         ]
       }
     },
+    "/api/v1/branches/{branchId}/carts/current": {
+      "get": {
+        "operationId": "CartsController_getCurrentCart",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cart detail"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Cart not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current cart for the authenticated user",
+        "tags": [
+          "Carts"
+        ]
+      },
+      "post": {
+        "operationId": "CartsController_getOrCreateCurrentCart",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cart detail"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get or create current cart for the user",
+        "tags": [
+          "Carts"
+        ]
+      }
+    },
     "/api/v1/branches/{branchId}/carts": {
       "post": {
         "operationId": "CartsController_createCart",
@@ -1933,6 +2015,208 @@
         "summary": "Checkout cart (creates invoice, stock movements)",
         "tags": [
           "Carts"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/invoices": {
+      "get": {
+        "operationId": "InvoicesController_list",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "example": "01J1QZQ0VQ8J7TQH0YV3A1BCDE",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor (invoice id) for pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items to return (default 50).",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "ISSUED",
+                "VOID",
+                "PARTIALLY_PAID",
+                "PAID",
+                "OVERDUE"
+              ]
+            }
+          },
+          {
+            "name": "customerId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by customer id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoices list"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List invoices",
+        "tags": [
+          "Invoices"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/invoices/{invoiceId}": {
+      "get": {
+        "operationId": "InvoicesController_getById",
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "description": "Invoice id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "description": "Branch id (26 chars)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice detail"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Invoice not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get invoice by id",
+        "tags": [
+          "Invoices"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/invoices/{invoiceId}/issue": {
+      "post": {
+        "operationId": "InvoicesController_issue",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice issued"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          },
+          "404": {
+            "description": "Invoice not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Issue invoice (INTERNAL now, ARCA soon)",
+        "tags": [
+          "Invoices"
+        ]
+      }
+    },
+    "/api/v1/branches/{branchId}/invoices/{invoiceId}/pdf": {
+      "get": {
+        "operationId": "InvoicesController_pdf",
+        "parameters": [
+          {
+            "name": "variant",
+            "required": false,
+            "in": "query",
+            "description": "PDF variant.",
+            "schema": {
+              "default": "internal",
+              "type": "string",
+              "enum": [
+                "internal",
+                "fiscal"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF generated"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Generate invoice PDF (internal)",
+        "tags": [
+          "Invoices"
         ]
       }
     },
@@ -2920,6 +3204,31 @@
             "minLength": 1
           }
         }
+      },
+      "IssueInvoiceDto": {
+        "type": "object",
+        "properties": {
+          "docType": {
+            "type": "string",
+            "description": "Invoice document type.",
+            "enum": [
+              "A",
+              "B"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "description": "Issuance mode. INTERNAL is supported now. ARCA will be added soon.",
+            "enum": [
+              "INTERNAL",
+              "ARCA"
+            ],
+            "default": "INTERNAL"
+          }
+        },
+        "required": [
+          "docType"
+        ]
       },
       "ConfirmImportDto": {
         "type": "object",

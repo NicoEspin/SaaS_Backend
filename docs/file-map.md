@@ -34,6 +34,7 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `docs/auth.md`: doc de endpoints de autenticacion.
 - `docs/customers-crud.md`: doc de customers (CRUD + soft delete).
 - `docs/carts.md`: doc de carts + checkout.
+- `docs/invoices.md`: doc de invoices (issue INTERNAL, PDF; ARCA planned).
 - `docs/inventory.md`: doc de inventario (list/adjust/transfer).
 
 ## Prisma
@@ -46,6 +47,8 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `prisma/migrations/20260220192216_add_refresh_tokens/migration.sql`: agrega refresh_tokens e indices en products.
 - `prisma/migrations/20260227100000_add_customer_fields/migration.sql`: agrega billing fields a customers + `is_active`.
 - `prisma/migrations/20260226153000_membership_active_branch/migration.sql`: agrega `memberships.active_branch_id` (branch activo por membership).
+- `prisma/migrations/20260227204819_invoices_vat_and_billing/migration.sql`: agrega IVA a products/invoice_lines, emision interna de invoices, y tablas ARCA-ready.
+- `prisma/migrations/20260227211000_carts_current_by_membership/migration.sql`: agrega `orders.created_by_membership_id` y un unique partial index para 1 cart DRAFT por user+branch.
 
 ## Source (NestJS)
 
@@ -129,7 +132,7 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 
 ### Sales (carts)
 
-- `src/modules/sales/sales.module.ts`: modulo sales (agrega carts).
+- `src/modules/sales/sales.module.ts`: modulo sales (carts + invoices).
 - `src/modules/sales/carts/carts.module.ts`: modulo carts.
 - `src/modules/sales/carts/carts.controller.ts`: endpoints de carts (branch scoped).
 - `src/modules/sales/carts/carts.service.ts`: logica de carts/checkout/invoice/stock.
@@ -141,6 +144,19 @@ Nota: el directorio `.agents/` contiene material para el agente de codificacion 
 - `src/modules/sales/carts/dto/branch-id.param.dto.ts`: DTO `:branchId`.
 - `src/modules/sales/carts/dto/cart-id.param.dto.ts`: DTO `:cartId`.
 - `src/modules/sales/carts/dto/product-id.param.dto.ts`: DTO `:productId`.
+
+#### Sales (invoices)
+
+- `src/modules/sales/invoices/invoices.module.ts`: modulo invoices.
+- `src/modules/sales/invoices/invoices.controller.ts`: endpoints branch-scoped para listar/detalle/issue/pdf.
+- `src/modules/sales/invoices/invoices.service.ts`: logica de emision INTERNAL + secuencias + armado de data para PDF.
+- `src/modules/sales/invoices/pdf/invoice-pdf.service.ts`: generacion PDF (variant internal).
+- `src/modules/sales/invoices/dto/*`: DTOs de params/query/body.
+
+### Lib (money)
+
+- `src/lib/money/vat.ts`: helper para calcular neto/IVA a partir de precio final (IVA incluido).
+- `src/lib/money/vat.spec.ts`: unit tests del calculo de IVA.
 
 ### Imports/Exports
 

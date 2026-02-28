@@ -44,6 +44,41 @@ import {
 export class CartsController {
   constructor(private readonly carts: CartsService) {}
 
+  @Get('current')
+  @ApiOperation({ summary: 'Get current cart for the authenticated user' })
+  @ApiOkResponse({ description: 'Cart detail' })
+  @ApiNotFoundResponse({ description: 'Cart not found' })
+  @ApiParam({
+    name: 'branchId',
+    type: String,
+    description: 'Branch id (26 chars)',
+  })
+  async getCurrentCart(
+    @CurrentUser() user: AuthUser,
+    @Param() params: BranchIdParamDto,
+  ): Promise<CartView> {
+    return this.carts.getCurrentCart(user, params.branchId);
+  }
+
+  @Post('current')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Get or create current cart for the user' })
+  @ApiOkResponse({ description: 'Cart detail' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiParam({
+    name: 'branchId',
+    type: String,
+    description: 'Branch id (26 chars)',
+  })
+  async getOrCreateCurrentCart(
+    @CurrentUser() user: AuthUser,
+    @Param() params: BranchIdParamDto,
+    @Body() dto?: CreateCartDto,
+  ): Promise<CartView> {
+    const safeDto = dto ?? new CreateCartDto();
+    return this.carts.getOrCreateCurrentCart(user, params.branchId, safeDto);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create cart (order draft)' })
   @ApiOkResponse({ description: 'Cart created' })
@@ -56,9 +91,10 @@ export class CartsController {
   async createCart(
     @CurrentUser() user: AuthUser,
     @Param() params: BranchIdParamDto,
-    @Body() dto: CreateCartDto,
+    @Body() dto?: CreateCartDto,
   ): Promise<CartView> {
-    return this.carts.createCart(user, params.branchId, dto);
+    const safeDto = dto ?? new CreateCartDto();
+    return this.carts.createCart(user, params.branchId, safeDto);
   }
 
   @Get(':cartId')

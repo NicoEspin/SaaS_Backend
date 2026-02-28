@@ -23,6 +23,7 @@ Body:
   "name": "Laptop",
   "categoryId": "01J...",
   "description": "Optional",
+  "vatRate": "0.21",
   "attributes": {
     "color": "rojo",
     "talle": "M"
@@ -35,6 +36,7 @@ Notes:
 
 - `attributes` is a key/value object with custom values for the selected `categoryId`.
 - Keys and value types are validated against product attribute definitions configured for that category.
+- `vatRate` is optional and defaults to `0.21` (21%). Prices are treated as VAT-included in invoices.
 
 Errors:
 

@@ -9,6 +9,7 @@ import { OrderStatus, Prisma, StockMovementType } from '@prisma/client';
 import type { AuthUser } from '../../../common/auth/auth.types';
 import { PrismaService } from '../../../common/database/prisma.service';
 import { newId } from '../../../common/ids/new-id';
+import { computeVatFromGross } from '../../../lib/money/vat';
 import type { AddCartItemDto } from './dto/add-cart-item.dto';
 import type { CheckoutCartDto } from './dto/checkout-cart.dto';
 import type { CreateCartDto } from './dto/create-cart.dto';
@@ -57,6 +58,14 @@ function sumMoney(values: Prisma.Decimal[]): Prisma.Decimal {
   return values.reduce((acc, v) => acc.plus(v), new Prisma.Decimal(0));
 }
 
+function isP2002UniqueConstraintError(
+  err: unknown,
+): err is Prisma.PrismaClientKnownRequestError {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002'
+  );
+}
+
 @Injectable()
 export class CartsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -66,43 +75,69 @@ export class CartsService {
     branchId: string,
     dto: CreateCartDto,
   ): Promise<CartView> {
+    return this.getOrCreateCurrentCart(user, branchId, dto);
+  }
+
+  async getCurrentCart(user: AuthUser, branchId: string): Promise<CartView> {
+    await this.requireBranch(user.tenantId, branchId);
+
+    const cart = await this.prisma.order.findFirst({
+      where: {
+        tenantId: user.tenantId,
+        branchId,
+        status: OrderStatus.DRAFT,
+        createdByMembershipId: user.membershipId,
+      },
+      select: { id: true },
+    });
+    if (!cart) throw new NotFoundException('Cart not found');
+    return this.getCart(user, branchId, cart.id);
+  }
+
+  async getOrCreateCurrentCart(
+    user: AuthUser,
+    branchId: string,
+    dto: CreateCartDto,
+  ): Promise<CartView> {
     await this.requireBranch(user.tenantId, branchId);
     if (dto.customerId) {
       await this.requireCustomer(user.tenantId, dto.customerId);
     }
 
-    const cart = await this.prisma.order.create({
-      data: {
-        id: newId(),
+    const existing = await this.prisma.order.findFirst({
+      where: {
         tenantId: user.tenantId,
         branchId,
-        number: newId(),
         status: OrderStatus.DRAFT,
-        customerId: dto.customerId ?? null,
+        createdByMembershipId: user.membershipId,
       },
-      select: {
-        id: true,
-        tenantId: true,
-        branchId: true,
-        customerId: true,
-        status: true,
-        subtotal: true,
-        discountTotal: true,
-        taxTotal: true,
-        total: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: { id: true },
     });
+    if (existing) return this.getCart(user, branchId, existing.id);
 
-    return {
-      ...cart,
-      subtotal: moneyToString(cart.subtotal),
-      discountTotal: moneyToString(cart.discountTotal),
-      taxTotal: moneyToString(cart.taxTotal),
-      total: moneyToString(cart.total),
-      items: [],
-    };
+    try {
+      const created = await this.prisma.order.create({
+        data: {
+          id: newId(),
+          tenantId: user.tenantId,
+          branchId,
+          number: newId(),
+          status: OrderStatus.DRAFT,
+          customerId: dto.customerId ?? null,
+          createdByMembershipId: user.membershipId,
+        },
+        select: { id: true },
+      });
+
+      return this.getCart(user, branchId, created.id);
+    } catch (err: unknown) {
+      // If the DB has a unique constraint for "one DRAFT cart per membership+branch",
+      // concurrent calls may race. In that case, return the existing cart.
+      if (isP2002UniqueConstraintError(err)) {
+        return this.getCurrentCart(user, branchId);
+      }
+      throw err;
+    }
   }
 
   async getCart(
@@ -111,7 +146,12 @@ export class CartsService {
     cartId: string,
   ): Promise<CartView> {
     const cart = await this.prisma.order.findFirst({
-      where: { id: cartId, tenantId: user.tenantId, branchId },
+      where: {
+        id: cartId,
+        tenantId: user.tenantId,
+        branchId,
+        createdByMembershipId: user.membershipId,
+      },
       select: {
         id: true,
         tenantId: true,
@@ -190,7 +230,12 @@ export class CartsService {
 
     await this.prisma.$transaction(async (tx) => {
       const cart = await tx.order.findFirst({
-        where: { id: cartId, tenantId: user.tenantId, branchId },
+        where: {
+          id: cartId,
+          tenantId: user.tenantId,
+          branchId,
+          createdByMembershipId: user.membershipId,
+        },
         select: { id: true, status: true },
       });
       if (!cart) throw new NotFoundException('Cart not found');
@@ -259,7 +304,12 @@ export class CartsService {
 
     await this.prisma.$transaction(async (tx) => {
       const cart = await tx.order.findFirst({
-        where: { id: cartId, tenantId: user.tenantId, branchId },
+        where: {
+          id: cartId,
+          tenantId: user.tenantId,
+          branchId,
+          createdByMembershipId: user.membershipId,
+        },
         select: { id: true, status: true },
       });
       if (!cart) throw new NotFoundException('Cart not found');
@@ -317,7 +367,12 @@ export class CartsService {
 
     await this.prisma.$transaction(async (tx) => {
       const cart = await tx.order.findFirst({
-        where: { id: cartId, tenantId: user.tenantId, branchId },
+        where: {
+          id: cartId,
+          tenantId: user.tenantId,
+          branchId,
+          createdByMembershipId: user.membershipId,
+        },
         select: { id: true, status: true },
       });
       if (!cart) throw new NotFoundException('Cart not found');
@@ -354,6 +409,7 @@ export class CartsService {
             tenantId: user.tenantId,
             branchId,
             status: OrderStatus.DRAFT,
+            createdByMembershipId: user.membershipId,
           },
           data: {
             status: OrderStatus.PENDING,
@@ -365,12 +421,26 @@ export class CartsService {
         }
 
         const cart = await tx.order.findFirst({
-          where: { id: cartId, tenantId: user.tenantId, branchId },
+          where: {
+            id: cartId,
+            tenantId: user.tenantId,
+            branchId,
+            createdByMembershipId: user.membershipId,
+          },
           select: {
             id: true,
             tenantId: true,
             branchId: true,
             customerId: true,
+            customer: {
+              select: {
+                name: true,
+                taxId: true,
+                taxIdType: true,
+                vatCondition: true,
+                address: true,
+              },
+            },
             subtotal: true,
             discountTotal: true,
             taxTotal: true,
@@ -383,6 +453,11 @@ export class CartsService {
                 quantity: true,
                 unitPrice: true,
                 lineTotal: true,
+                product: {
+                  select: {
+                    vatRate: true,
+                  },
+                },
               },
             },
           },
@@ -400,10 +475,26 @@ export class CartsService {
         }
 
         // Recalculate totals from items to avoid stale totals.
+        // Prices are treated as gross (VAT included). For now default VAT rate is per product.
         const subtotal = sumMoney(productItems.map((i) => i.lineTotal));
         const discountTotal = new Prisma.Decimal(0);
-        const taxTotal = new Prisma.Decimal(0);
-        const total = subtotal.minus(discountTotal).plus(taxTotal);
+
+        const vatLines = productItems.map((i) => {
+          const vatRate = i.product?.vatRate ?? new Prisma.Decimal('0.21');
+          const unit = computeVatFromGross(i.unitPrice, vatRate);
+          const netUnitPrice = unit.net;
+          const netLineTotal = netUnitPrice
+            .mul(i.quantity)
+            .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+          const vatAmount = i.lineTotal
+            .minus(netLineTotal)
+            .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+          return { vatRate, netUnitPrice, netLineTotal, vatAmount };
+        });
+
+        const netSubtotal = sumMoney(vatLines.map((l) => l.netLineTotal));
+        const taxTotal = sumMoney(vatLines.map((l) => l.vatAmount));
+        const total = subtotal.minus(discountTotal);
 
         await tx.order.update({
           where: { id: cartId },
@@ -461,7 +552,7 @@ export class CartsService {
 
         const invoiceId = newId();
         const invoiceNumber = newId();
-        const issuedAt = new Date();
+        const issuedAt = null;
         await tx.invoice.create({
           data: {
             id: invoiceId,
@@ -470,21 +561,36 @@ export class CartsService {
             orderId: cartId,
             customerId: cart.customerId,
             number: invoiceNumber,
-            status: 'ISSUED',
-            issuedAt,
+            status: 'DRAFT',
+            issuedAt: null,
+            customerNameSnapshot: cart.customer?.name ?? null,
+            customerTaxIdSnapshot: cart.customer?.taxId ?? null,
+            customerTaxIdTypeSnapshot: cart.customer?.taxIdType ?? null,
+            customerVatConditionSnapshot: cart.customer?.vatCondition ?? null,
+            customerAddressSnapshot: cart.customer?.address ?? null,
             subtotal,
+            netSubtotal,
             taxTotal,
             total,
             lines: {
-              create: productItems.map((i) => ({
-                id: newId(),
-                tenantId: user.tenantId,
-                productId: i.productId,
-                description: i.nameSnapshot,
-                quantity: i.quantity,
-                unitPrice: i.unitPrice,
-                lineTotal: i.lineTotal,
-              })),
+              create: productItems.map((i, idx) => {
+                const v = vatLines[idx];
+                if (!v) throw new Error('VAT breakdown mismatch');
+                return {
+                  id: newId(),
+                  tenantId: user.tenantId,
+                  productId: i.productId,
+                  productCodeSnapshot: i.codeSnapshot,
+                  description: i.nameSnapshot,
+                  quantity: i.quantity,
+                  unitPrice: i.unitPrice,
+                  lineTotal: i.lineTotal,
+                  vatRate: v.vatRate,
+                  netUnitPrice: v.netUnitPrice,
+                  netLineTotal: v.netLineTotal,
+                  vatAmount: v.vatAmount,
+                };
+              }),
             },
           },
           select: { id: true },
@@ -505,7 +611,7 @@ export class CartsService {
       invoice: {
         id: invoiceId,
         number: invoiceNumber,
-        status: 'ISSUED',
+        status: 'DRAFT',
         issuedAt,
         total: cart.total,
       },

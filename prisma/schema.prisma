@@ -33,6 +33,26 @@ enum InvoiceStatus {
   OVERDUE
 }
 
+enum InvoiceMode {
+  INTERNAL
+  ARCA
+}
+
+enum InvoiceDocType {
+  A
+  B
+}
+
+enum InvoiceFiscalProvider {
+  ARCA
+}
+
+enum InvoiceFiscalStatus {
+  PENDING
+  AUTHORIZED
+  REJECTED
+}
+
 enum PaymentMethod {
   CASH
   CARD
@@ -104,6 +124,10 @@ model Tenant {
   orderItems        OrderItem[]
   invoices          Invoice[]
   invoiceLines      InvoiceLine[]
+  invoiceFiscals    InvoiceFiscal[]
+  invoiceSequences  InvoiceSequence[]
+  billingProfile    TenantBillingProfile?
+  branchFiscalSettings BranchFiscalSettings[]
   payments          Payment[]
   branchInventories BranchInventory[]
   stockMovements    StockMovement[]
@@ -138,6 +162,8 @@ model Membership {
   activeBranch Branch? @relation("MembershipActiveBranch", fields: [activeBranchId], references: [id], onDelete: SetNull)
 
   refreshTokens RefreshToken[]
+
+  createdOrders Order[] @relation("OrderCreatedByMembership")
 
   @@unique([tenantId, userId])
   @@index([userId])
@@ -175,6 +201,8 @@ model Branch {
   inventories BranchInventory[]
   orders      Order[]
   invoices    Invoice[]
+  fiscalSettings BranchFiscalSettings?
+  invoiceSequences InvoiceSequence[]
   payments    Payment[]
   stockMovements StockMovement[]
 
@@ -191,6 +219,7 @@ model Product {
   description String?  @db.Text
   unit        String?  @db.VarChar(24)
   attributes  Json?    @db.JsonB
+  vatRate     Decimal  @default(0.21) @map("vat_rate") @db.Decimal(6, 4)
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -310,6 +339,7 @@ model Order {
   number        String      @db.VarChar(32)
   status        OrderStatus @default(DRAFT)
   customerId    String?     @map("customer_id") @db.VarChar(26)
+  createdByMembershipId String? @map("created_by_membership_id") @db.VarChar(26)
   subtotal      Decimal     @default(0) @db.Decimal(12, 2)
   discountTotal Decimal     @default(0) @map("discount_total") @db.Decimal(12, 2)
   taxTotal      Decimal     @default(0) @map("tax_total") @db.Decimal(12, 2)
@@ -320,6 +350,7 @@ model Order {
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   branch   Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  createdByMembership Membership? @relation("OrderCreatedByMembership", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
 
   items    OrderItem[]
   invoices Invoice[]
@@ -330,6 +361,7 @@ model Order {
   @@index([tenantId, branchId, createdAt])
   @@index([tenantId, branchId, status])
   @@index([tenantId, customerId])
+  @@index([tenantId, branchId, createdByMembershipId, status])
   @@map("orders")
 }
 
@@ -361,13 +393,22 @@ model Invoice {
   orderId    String?       @map("order_id") @db.VarChar(26)
   customerId String?       @map("customer_id") @db.VarChar(26)
   number     String        @db.VarChar(32)
+  displayNumber String?     @map("display_number") @db.VarChar(64)
+  mode       InvoiceMode?   @map("mode")
+  docType    InvoiceDocType? @map("doc_type")
+  pointOfSale Int?          @map("point_of_sale")
+  fiscalNumber Int?         @map("fiscal_number")
   status     InvoiceStatus @default(DRAFT)
   issuedAt   DateTime?     @map("issued_at")
   dueAt      DateTime?     @map("due_at")
   notes      String?       @db.Text
   customerNameSnapshot  String? @map("customer_name_snapshot") @db.VarChar(200)
   customerTaxIdSnapshot String? @map("customer_tax_id_snapshot") @db.VarChar(32)
+  customerTaxIdTypeSnapshot CustomerTaxIdType? @map("customer_tax_id_type_snapshot")
+  customerVatConditionSnapshot CustomerVatCondition? @map("customer_vat_condition_snapshot")
+  customerAddressSnapshot String? @map("customer_address_snapshot") @db.VarChar(300)
   subtotal   Decimal       @default(0) @db.Decimal(12, 2)
+  netSubtotal Decimal      @default(0) @map("net_subtotal") @db.Decimal(12, 2)
   taxTotal   Decimal       @default(0) @map("tax_total") @db.Decimal(12, 2)
   total      Decimal       @default(0) @db.Decimal(12, 2)
   createdAt  DateTime      @default(now()) @map("created_at")
@@ -379,6 +420,7 @@ model Invoice {
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   lines    InvoiceLine[]
+  fiscal   InvoiceFiscal?
   payments Payment[]
 
   @@unique([tenantId, number])
@@ -393,10 +435,15 @@ model InvoiceLine {
   tenantId    String   @map("tenant_id") @db.VarChar(26)
   invoiceId   String   @map("invoice_id") @db.VarChar(26)
   productId   String?  @map("product_id") @db.VarChar(26)
+  productCodeSnapshot String? @map("product_code_snapshot") @db.VarChar(64)
   description String   @db.VarChar(500)
   quantity    Int      @default(1)
   unitPrice   Decimal  @map("unit_price") @db.Decimal(12, 2)
   lineTotal   Decimal  @map("line_total") @db.Decimal(12, 2)
+  vatRate     Decimal  @default(0.21) @map("vat_rate") @db.Decimal(6, 4)
+  netUnitPrice Decimal @default(0) @map("net_unit_price") @db.Decimal(12, 2)
+  netLineTotal Decimal @default(0) @map("net_line_total") @db.Decimal(12, 2)
+  vatAmount   Decimal  @default(0) @map("vat_amount") @db.Decimal(12, 2)
   createdAt   DateTime @default(now()) @map("created_at")
 
   tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -406,6 +453,75 @@ model InvoiceLine {
   @@index([tenantId, invoiceId])
   @@index([productId])
   @@map("invoice_lines")
+}
+
+model InvoiceFiscal {
+  invoiceId String @id @map("invoice_id") @db.VarChar(26)
+  tenantId  String @map("tenant_id") @db.VarChar(26)
+  provider  InvoiceFiscalProvider
+  status    InvoiceFiscalStatus @default(PENDING)
+  cae       String? @db.VarChar(32)
+  caeExpiresAt DateTime? @map("cae_expires_at")
+  authorizedAt DateTime? @map("authorized_at")
+  qrPayload  String? @map("qr_payload") @db.Text
+  requestJson  Json? @map("request_json") @db.JsonB
+  responseJson Json? @map("response_json") @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("invoice_fiscals")
+}
+
+model InvoiceSequence {
+  id        String      @id @db.VarChar(26)
+  tenantId  String      @map("tenant_id") @db.VarChar(26)
+  branchId  String      @map("branch_id") @db.VarChar(26)
+  mode      InvoiceMode
+  docType   InvoiceDocType
+  nextNumber Int        @map("next_number")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, branchId, mode, docType])
+  @@index([tenantId, branchId])
+  @@map("invoice_sequences")
+}
+
+model TenantBillingProfile {
+  id        String   @id @db.VarChar(26)
+  tenantId  String   @unique @map("tenant_id") @db.VarChar(26)
+  legalName String   @map("legal_name") @db.VarChar(200)
+  taxId     String   @map("tax_id") @db.VarChar(32)
+  vatCondition CustomerVatCondition? @map("vat_condition")
+  address   String?  @db.VarChar(300)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_billing_profiles")
+}
+
+model BranchFiscalSettings {
+  id        String   @id @db.VarChar(26)
+  tenantId  String   @map("tenant_id") @db.VarChar(26)
+  branchId  String   @unique @map("branch_id") @db.VarChar(26)
+  pointOfSale Int    @map("point_of_sale")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, branchId])
+  @@map("branch_fiscal_settings")
 }
 
 model Payment {
