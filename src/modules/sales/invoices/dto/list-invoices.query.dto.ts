@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
@@ -19,6 +20,7 @@ export class ListInvoicesQueryDto {
 
   @ApiPropertyOptional({ description: 'Max items to return (default 50).' })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(200)

@@ -13,6 +13,10 @@ Notes:
 
 - GET /api/v1/branches/:branchId/inventory
 
+Response notes:
+
+- `items[].product` is aligned with the Products API shape (includes `category`, `attributes`, and `displayAttributes`).
+
 Query params:
 
 - `limit`: 1-100

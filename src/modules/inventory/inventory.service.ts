@@ -7,6 +7,56 @@ import type { ListBranchInventoryQueryDto } from './dto/list-branch-inventory.qu
 
 type DbClient = Prisma.TransactionClient | PrismaService;
 
+type ProductAttributePrimitive = string | number | boolean;
+type ProductAttributes = Record<string, ProductAttributePrimitive>;
+
+type ProductDisplayAttribute = {
+  key: string;
+  label: string;
+  value: ProductAttributePrimitive;
+};
+
+type InventoryProductView = {
+  id: string;
+  code: string;
+  name: string;
+  category: { id: string; name: string } | null;
+  description: string | null;
+  attributes: ProductAttributes;
+  displayAttributes: ProductDisplayAttribute[];
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function isProductAttributePrimitive(
+  value: unknown,
+): value is ProductAttributePrimitive {
+  if (typeof value === 'string') return true;
+  if (typeof value === 'boolean') return true;
+  if (typeof value === 'number' && Number.isFinite(value)) return true;
+  return false;
+}
+
+function parseStoredAttributes(
+  value: Prisma.JsonValue | null,
+): ProductAttributes {
+  if (!isPlainObject(value)) return {};
+  const attributes: ProductAttributes = {};
+  for (const [key, rawValue] of Object.entries(value)) {
+    if (isProductAttributePrimitive(rawValue)) {
+      attributes[key] = rawValue;
+    }
+  }
+  return attributes;
+}
+
 function moneyToString(value: Prisma.Decimal | null): string | null {
   return value ? value.toString() : null;
 }
@@ -14,7 +64,7 @@ function moneyToString(value: Prisma.Decimal | null): string | null {
 export type BranchInventoryItemView = {
   id: string;
   branchId: string;
-  product: { id: string; code: string; name: string };
+  product: InventoryProductView;
   stockOnHand: number;
   price: string | null;
 };
@@ -461,7 +511,20 @@ export class InventoryService {
         productId: true,
         stockOnHand: true,
         price: true,
-        product: { select: { id: true, code: true, name: true } },
+        product: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            categoryId: true,
+            category: { select: { id: true, name: true } },
+            description: true,
+            attributes: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
     });
 
@@ -469,11 +532,87 @@ export class InventoryService {
     const items = hasMore ? rows.slice(0, limit) : rows;
     const nextCursor = hasMore ? (items[items.length - 1]?.id ?? null) : null;
 
+    const categoryIds = [
+      ...new Set(
+        items
+          .map((row) => row.product.categoryId)
+          .filter(
+            (categoryId): categoryId is string =>
+              typeof categoryId === 'string',
+          ),
+      ),
+    ];
+
+    const definitions =
+      categoryIds.length > 0
+        ? await this.prisma.productAttributeDefinition.findMany({
+            where: {
+              tenantId,
+              categoryId: { in: categoryIds },
+              isVisibleInTable: true,
+            },
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+            select: {
+              categoryId: true,
+              key: true,
+              label: true,
+            },
+          })
+        : [];
+
+    const visibleDefinitionsByCategory = new Map<
+      string,
+      Array<{ key: string; label: string }>
+    >();
+    for (const definition of definitions) {
+      const existing =
+        visibleDefinitionsByCategory.get(definition.categoryId) ?? [];
+      existing.push({ key: definition.key, label: definition.label });
+      visibleDefinitionsByCategory.set(definition.categoryId, existing);
+    }
+
     return {
       items: items.map((row) => ({
         id: row.id,
         branchId: row.branchId,
-        product: row.product,
+        product: (() => {
+          const attributes = parseStoredAttributes(row.product.attributes);
+          const displayDefinitions = row.product.categoryId
+            ? (visibleDefinitionsByCategory.get(row.product.categoryId) ?? [])
+            : [];
+          const displayAttributes = displayDefinitions
+            .map((definition) => {
+              const value = attributes[definition.key];
+              if (value === undefined) return null;
+              return {
+                key: definition.key,
+                label: definition.label,
+                value,
+              };
+            })
+            .filter(
+              (
+                attribute,
+              ): attribute is {
+                key: string;
+                label: string;
+                value: ProductAttributePrimitive;
+              } => attribute !== null,
+            );
+
+          return {
+            id: row.product.id,
+            code: row.product.code,
+            name: row.product.name,
+            category: row.product.category,
+            description: row.product.description,
+            attributes,
+            displayAttributes,
+            isActive: row.product.isActive,
+            createdAt: row.product.createdAt,
+            updatedAt: row.product.updatedAt,
+          } satisfies InventoryProductView;
+        })(),
         stockOnHand: row.stockOnHand,
         price: moneyToString(row.price),
       })),
