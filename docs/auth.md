@@ -7,6 +7,9 @@ Auth is JWT-based with refresh tokens persisted in DB.
   - `accessToken` cookie
 - Refresh token is only accepted via cookie.
 
+For cookie + CORS settings when deploying with `app.<domain>` / `api.<domain>`,
+see `docs/production-auth-cookies.md`.
+
 Base path:
 
 - /api/v1/auth

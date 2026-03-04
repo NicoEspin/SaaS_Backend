@@ -1,6 +1,11 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { Prisma, StockMovementType } from '@prisma/client';
 
+import type { MembershipRole } from '../../common/auth/auth.types';
 import { PrismaService } from '../../common/database/prisma.service';
 import { newId } from '../../common/ids/new-id';
 import type { ListBranchInventoryQueryDto } from './dto/list-branch-inventory.query.dto';
@@ -90,6 +95,13 @@ export type StockAdjustmentResult = {
   movementId: string;
 };
 
+export type PriceChangeResult = {
+  branchId: string;
+  productId: string;
+  price: string;
+  movementId: string;
+};
+
 export type StockTransferResult = {
   fromBranchId: string;
   toBranchId: string;
@@ -101,6 +113,14 @@ export type StockTransferResult = {
 @Injectable()
 export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private canDecrementStock(role: MembershipRole): boolean {
+    return role === 'OWNER' || role === 'ADMIN';
+  }
+
+  private canChangePrice(role: MembershipRole): boolean {
+    return role === 'OWNER' || role === 'ADMIN';
+  }
 
   async receivePurchaseLine(
     tenantId: string,
@@ -259,9 +279,16 @@ export class InventoryService {
     quantity: number,
     notes: string | null,
     userId: string,
+    role: MembershipRole,
   ): Promise<StockAdjustmentResult> {
     if (!Number.isInteger(quantity) || quantity === 0) {
       throw new BadRequestException('quantity must be a non-zero integer');
+    }
+
+    if (quantity < 0 && !this.canDecrementStock(role)) {
+      throw new ForbiddenException(
+        'Insufficient permissions to decrement stock',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -339,6 +366,88 @@ export class InventoryService {
         branchId,
         productId,
         stockOnHand: quantityAfter,
+        movementId: movement.id,
+      };
+    });
+  }
+
+  async changePrice(
+    tenantId: string,
+    branchId: string,
+    productId: string,
+    price: number,
+    notes: string | null,
+    userId: string,
+    role: MembershipRole,
+  ): Promise<PriceChangeResult> {
+    if (!Number.isFinite(price) || price < 0) {
+      throw new BadRequestException('price must be a number >= 0');
+    }
+    if (!this.canChangePrice(role)) {
+      throw new ForbiddenException('Insufficient permissions to change price');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.requireBranch(tx, tenantId, branchId);
+      await this.requireProduct(tx, tenantId, productId);
+
+      const whereUnique = {
+        tenantId_branchId_productId: { tenantId, branchId, productId },
+      };
+
+      const existing = await tx.branchInventory.findUnique({
+        where: whereUnique,
+        select: { stockOnHand: true, price: true },
+      });
+
+      const priceDecimal = new Prisma.Decimal(price);
+      const upserted = await tx.branchInventory.upsert({
+        where: whereUnique,
+        update: {
+          price: priceDecimal,
+        },
+        create: {
+          id: newId(),
+          tenantId,
+          branchId,
+          productId,
+          stockOnHand: 0,
+          price: priceDecimal,
+        },
+        select: { stockOnHand: true, price: true },
+      });
+
+      const quantityBefore = existing?.stockOnHand ?? 0;
+      const quantityAfter = upserted.stockOnHand;
+
+      const movement = await tx.stockMovement.create({
+        data: {
+          id: newId(),
+          tenantId,
+          branchId,
+          productId,
+          type: StockMovementType.PRICE_CHANGE,
+          quantity: 0,
+          quantityBefore,
+          quantityAfter,
+          priceBefore: existing?.price ?? null,
+          priceAfter: upserted.price,
+          referenceType: 'PRICE_CHANGE',
+          note: notes,
+          createdBy: userId,
+        },
+        select: { id: true },
+      });
+
+      const priceString = moneyToString(upserted.price);
+      if (!priceString) {
+        throw new Error('Expected price to be set after changePrice');
+      }
+
+      return {
+        branchId,
+        productId,
+        price: priceString,
         movementId: movement.id,
       };
     });

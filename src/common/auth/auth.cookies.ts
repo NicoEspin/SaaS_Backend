@@ -70,8 +70,9 @@ export function refreshCookieOptions(
     secure: cookieSecure(config),
     sameSite: cookieSameSite(config),
     domain: cookieDomain(config),
-    // Only send refresh cookie to auth endpoints.
-    path: '/api/v1/auth',
+    // Refresh cookie must be available on app routes too (e.g. Next.js middleware
+    // gating /dashboard/...). Keep it scoped by domain + httpOnly + sameSite.
+    path: '/',
     maxAge: maxAgeSeconds * 1000,
   };
 }

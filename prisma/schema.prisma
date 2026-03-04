@@ -92,6 +92,7 @@ enum StockMovementType {
   PURCHASE_RECEIPT
   SALE
   ADJUSTMENT
+  PRICE_CHANGE
   TRANSFER_IN
   TRANSFER_OUT
   RETURN
@@ -714,6 +715,8 @@ model StockMovement {
   quantity       Int
   quantityBefore Int               @map("quantity_before")
   quantityAfter  Int               @map("quantity_after")
+  priceBefore    Decimal?          @map("price_before") @db.Decimal(12, 2)
+  priceAfter     Decimal?          @map("price_after") @db.Decimal(12, 2)
   orderId        String?           @map("order_id") @db.VarChar(26)
   referenceId    String?           @map("reference_id") @db.VarChar(26)
   referenceType  String?           @map("reference_type") @db.VarChar(32)

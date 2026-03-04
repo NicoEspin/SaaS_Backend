@@ -10,6 +10,7 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
@@ -23,12 +24,14 @@ import type { AuthUser } from '../../common/auth/auth.types';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { AdjustInventoryDto } from './dto/adjust-inventory.dto';
 import { BranchIdParamDto } from './dto/branch-id.param.dto';
+import { ChangeInventoryPriceDto } from './dto/change-inventory-price.dto';
 import { ListBranchInventoryQueryDto } from './dto/list-branch-inventory.query.dto';
 import { ProductIdParamDto } from './dto/product-id.param.dto';
 import { TransferInventoryDto } from './dto/transfer-inventory.dto';
 import {
   InventoryService,
   type BranchInventoryListResult,
+  type PriceChangeResult,
   type ProductStockResult,
   type StockAdjustmentResult,
   type StockTransferResult,
@@ -69,6 +72,7 @@ export class InventoryController {
   @ApiOperation({ summary: 'Adjust inventory' })
   @ApiOkResponse({ description: 'Inventory adjusted' })
   @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions' })
   @ApiParam({
     name: 'branchId',
     type: String,
@@ -86,6 +90,33 @@ export class InventoryController {
       dto.quantity,
       dto.notes ?? null,
       user.userId,
+      user.role,
+    );
+  }
+
+  @Post('branches/:branchId/inventory/price-changes')
+  @ApiOperation({ summary: 'Change inventory price (per branch)' })
+  @ApiOkResponse({ description: 'Price changed' })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions' })
+  @ApiParam({
+    name: 'branchId',
+    type: String,
+    description: 'Branch id (26 chars)',
+  })
+  async changePrice(
+    @CurrentUser() user: AuthUser,
+    @Param() params: BranchIdParamDto,
+    @Body() dto: ChangeInventoryPriceDto,
+  ): Promise<PriceChangeResult> {
+    return this.inventory.changePrice(
+      user.tenantId,
+      params.branchId,
+      dto.productId,
+      dto.price,
+      dto.notes ?? null,
+      user.userId,
+      user.role,
     );
   }
 

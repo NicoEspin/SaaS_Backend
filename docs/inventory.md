@@ -36,6 +36,29 @@ Body:
 }
 ```
 
+Permissions:
+
+- Increasing stock (`quantity > 0`) is allowed for any authenticated user.
+- Decreasing stock (`quantity < 0`) is restricted to `OWNER` / `ADMIN`.
+
+## Change inventory price (per branch)
+
+- POST /api/v1/branches/:branchId/inventory/price-changes
+
+Body:
+
+```json
+{
+  "productId": "01J...",
+  "price": 1500,
+  "notes": "Updated pricing"
+}
+```
+
+Permissions:
+
+- Restricted to `OWNER` / `ADMIN`.
+
 ## Transfer inventory
 
 - POST /api/v1/branches/:branchId/inventory/transfers

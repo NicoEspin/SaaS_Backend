@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { ForbiddenException } from '@nestjs/common';
 import { Prisma, StockMovementType } from '@prisma/client';
 
 import { PrismaService } from '../../common/database/prisma.service';
@@ -285,5 +286,147 @@ describe('InventoryService.getStockByBranch', () => {
         isActive: true,
       },
     });
+  });
+});
+
+describe('InventoryService.adjustStock permissions', () => {
+  const prisma = {
+    $transaction: jest.fn<
+      Promise<unknown>,
+      [(tx: unknown) => Promise<unknown>]
+    >(),
+  };
+
+  let service: InventoryService;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        InventoryService,
+        { provide: PrismaService, useValue: prisma },
+      ],
+    }).compile();
+
+    service = moduleRef.get(InventoryService);
+  });
+
+  it('rejects stock decrement for non OWNER/ADMIN', async () => {
+    await expect(
+      service.adjustStock('t1', 'b1', 'p1', -1, null, 'u1', 'CASHIER'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe('InventoryService.changePrice', () => {
+  const prisma = {
+    $transaction: jest.fn<
+      Promise<unknown>,
+      [(tx: unknown) => Promise<unknown>]
+    >(),
+  };
+
+  const tx = {
+    branch: {
+      findFirst: jest.fn<Promise<unknown>, [Prisma.BranchFindFirstArgs]>(),
+    },
+    product: {
+      findFirst: jest.fn<Promise<unknown>, [Prisma.ProductFindFirstArgs]>(),
+    },
+    branchInventory: {
+      findUnique: jest.fn<
+        Promise<unknown>,
+        [Prisma.BranchInventoryFindUniqueArgs]
+      >(),
+      upsert: jest.fn<Promise<unknown>, [Prisma.BranchInventoryUpsertArgs]>(),
+    },
+    stockMovement: {
+      create: jest.fn<Promise<unknown>, [Prisma.StockMovementCreateArgs]>(),
+    },
+  };
+
+  let service: InventoryService;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    tx.branch.findFirst.mockResolvedValue({ id: 'b1' });
+    tx.product.findFirst.mockResolvedValue({ id: 'p1' });
+    tx.stockMovement.create.mockResolvedValue({ id: 'sm1' });
+
+    prisma.$transaction.mockImplementation(async (cb) => cb(tx));
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        InventoryService,
+        { provide: PrismaService, useValue: prisma },
+      ],
+    }).compile();
+
+    service = moduleRef.get(InventoryService);
+  });
+
+  it('rejects price change for non OWNER/ADMIN', async () => {
+    await expect(
+      service.changePrice('t1', 'b1', 'p1', 100, null, 'u1', 'MANAGER'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('creates StockMovement PRICE_CHANGE with before/after price', async () => {
+    tx.branchInventory.findUnique.mockResolvedValueOnce({
+      stockOnHand: 10,
+      price: new Prisma.Decimal('1000'),
+    });
+    tx.branchInventory.upsert.mockResolvedValueOnce({
+      stockOnHand: 10,
+      price: new Prisma.Decimal('1500'),
+    });
+
+    const result = await service.changePrice(
+      't1',
+      'b1',
+      'p1',
+      1500,
+      'Updated pricing',
+      'u1',
+      'ADMIN',
+    );
+
+    expect(result).toMatchObject({
+      branchId: 'b1',
+      productId: 'p1',
+      price: '1500',
+      movementId: 'sm1',
+    });
+
+    const createCalls = tx.stockMovement.create.mock.calls as unknown as Array<
+      [Prisma.StockMovementCreateArgs]
+    >;
+    const first = createCalls[0]?.[0];
+    if (!first) throw new Error('Expected stockMovement.create call');
+
+    expect(first.data).toMatchObject({
+      tenantId: 't1',
+      branchId: 'b1',
+      productId: 'p1',
+      type: StockMovementType.PRICE_CHANGE,
+      quantity: 0,
+      quantityBefore: 10,
+      quantityAfter: 10,
+      referenceType: 'PRICE_CHANGE',
+      note: 'Updated pricing',
+      createdBy: 'u1',
+    });
+
+    const priceBefore = (
+      first.data as unknown as { priceBefore: Prisma.Decimal }
+    ).priceBefore;
+    const priceAfter = (first.data as unknown as { priceAfter: Prisma.Decimal })
+      .priceAfter;
+    expect(priceBefore.toString()).toBe('1000');
+    expect(priceAfter.toString()).toBe('1500');
   });
 });
